@@ -3,6 +3,8 @@
   "displayName": "Fav Launcher",
   "description": "Favorite files, folders, commands and macros — with groups, notes, drag & drop and team sharing",
   "version": "0.2.0",
+  "publisher": "kohrock",
+  "repository": { "type": "git", "url": "https://github.com/kohrock/fav-launcher-extension" },
   "engines": { "vscode": "^1.95.0" },
   "categories": ["Other"],
   "activationEvents": ["onStartupFinished"],
@@ -74,6 +76,21 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically highlight the current file in the Favorites panel when you switch editors."
+        },
+        "favLauncher.backupReminderDays": {
+          "type": "number",
+          "default": 0,
+          "markdownDescription": "Show a backup reminder after this many days since the last export. Set to `0` to disable."
+        },
+        "favLauncher.showRecentSection": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show a 'Recent' section at the top of the Favorites panel listing the 5 most recently used items."
+        },
+        "favLauncher.startupItemId": {
+          "type": "string",
+          "default": "",
+          "description": "ID of a favorite item to automatically open/run when this workspace starts. Right-click any item and choose 'Set as Startup Item' to configure."
         }
       }
     },
@@ -112,6 +129,7 @@
       { "command": "favLauncher.setColor",            "title": "Set Color Label",                  "icon": "$(symbol-color)" },
       { "command": "favLauncher.resetStyle",          "title": "Reset Icon & Color",               "icon": "$(discard)" },
       { "command": "favLauncher.resetAllSettings",    "title": "Favorites: Reset All Settings to Defaults" },
+      { "command": "favLauncher.resetAllStyles",      "title": "Favorites: Reset All Icons & Colors" },
       { "command": "favLauncher.launchPinned1",       "title": "Favorites: Launch Pinned #1" },
       { "command": "favLauncher.launchPinned2",       "title": "Favorites: Launch Pinned #2" },
       { "command": "favLauncher.launchPinned3",       "title": "Favorites: Launch Pinned #3" },
@@ -120,7 +138,20 @@
       { "command": "favLauncher.launchPinned6",       "title": "Favorites: Launch Pinned #6" },
       { "command": "favLauncher.launchPinned7",       "title": "Favorites: Launch Pinned #7" },
       { "command": "favLauncher.launchPinned8",       "title": "Favorites: Launch Pinned #8" },
-      { "command": "favLauncher.launchPinned9",       "title": "Favorites: Launch Pinned #9" }
+      { "command": "favLauncher.launchPinned9",       "title": "Favorites: Launch Pinned #9" },
+      { "command": "favLauncher.addFromClipboard",    "title": "Favorites: Add from Clipboard",    "icon": "$(clippy)" },
+      { "command": "favLauncher.removeDeadLinks",     "title": "Favorites: Remove Dead Links",     "icon": "$(trash)" },
+      { "command": "favLauncher.removeDuplicates",    "title": "Favorites: Remove Duplicates" },
+      { "command": "favLauncher.jumpToGroup",         "title": "Favorites: Jump to Group",         "icon": "$(folder-active)" },
+      { "command": "favLauncher.openAllInGroup",        "title": "Open All Files in Group",                "icon": "$(files)" },
+      { "command": "favLauncher.closeAllInGroup",       "title": "Close All Editors in Group",             "icon": "$(close-all)" },
+      { "command": "favLauncher.addWorkspace",          "title": "Add Workspace / Folder",                 "icon": "$(window)" },
+      { "command": "favLauncher.openWorkspace",         "title": "Open in New Window" },
+      { "command": "favLauncher.setStartupItem",        "title": "Set as Startup Item",                    "icon": "$(rocket)" },
+      { "command": "favLauncher.editSeparatorLabel",    "title": "Edit Separator Label",                   "icon": "$(edit)" },
+      { "command": "favLauncher.editArgs",              "title": "Edit Command Args",                      "icon": "$(bracket)" },
+      { "command": "favLauncher.toggleRecentSection",   "title": "Favorites: Toggle Recent Section",       "icon": "$(history)" },
+      { "command": "favLauncher.openHelp",              "title": "Favorites: Help & Feature Guide",        "icon": "$(question)" }
     ],
     "keybindings": [
       { "command": "favLauncher.open",            "key": "ctrl+shift+f",   "mac": "cmd+shift+f",   "when": "!findWidgetVisible" },
@@ -134,7 +165,8 @@
       { "command": "favLauncher.launchPinned7",   "key": "ctrl+alt+7",     "mac": "cmd+alt+7" },
       { "command": "favLauncher.launchPinned8",   "key": "ctrl+alt+8",     "mac": "cmd+alt+8" },
       { "command": "favLauncher.launchPinned9",   "key": "ctrl+alt+9",     "mac": "cmd+alt+9" },
-      { "command": "favLauncher.revealCurrentFile","key": "ctrl+alt+r",    "mac": "cmd+alt+r" }
+      { "command": "favLauncher.revealCurrentFile","key": "ctrl+alt+r",    "mac": "cmd+alt+r" },
+      { "command": "favLauncher.jumpToGroup",      "key": "ctrl+alt+g",    "mac": "cmd+alt+g" }
     ],
     "menus": {
       "view/title": [
@@ -153,7 +185,15 @@
         { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.importFavorites", "group": "3_io@2" },
         { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.revealCurrentFile","group": "2_view@3" },
         { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.openSettings",       "group": "4_settings@1" },
-        { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.resetAllSettings",   "group": "4_settings@2" }
+        { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.resetAllSettings",   "group": "4_settings@2" },
+        { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.resetAllStyles",     "group": "4_settings@3" },
+        { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.addFromClipboard",  "group": "1_add@4" },
+        { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.removeDeadLinks",   "group": "5_cleanup@1" },
+        { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.removeDuplicates",  "group": "5_cleanup@2" },
+        { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.jumpToGroup",         "group": "2_view@4" },
+        { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.toggleRecentSection", "group": "2_view@5" },
+        { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.addWorkspace",        "group": "1_add@5" },
+        { "when": "view =~ /favLauncher\\.favoritesView/", "command": "favLauncher.openHelp",            "group": "navigation@9" }
       ],
       "view/item/context": [
         { "when": "viewItem == favLauncher.item",               "command": "favLauncher.pinItem",            "group": "inline@1" },
@@ -169,6 +209,9 @@
         { "when": "viewItem == favLauncher.group",              "command": "favLauncher.setColor",           "group": "1_edit@1" },
         { "when": "viewItem == favLauncher.group",              "command": "favLauncher.setIcon",            "group": "1_edit@2" },
         { "when": "viewItem == favLauncher.group",              "command": "favLauncher.resetStyle",         "group": "1_edit@3" },
+        { "when": "viewItem == favLauncher.group",              "command": "favLauncher.openAllInGroup",     "group": "0_open@1" },
+        { "when": "viewItem == favLauncher.group",              "command": "favLauncher.closeAllInGroup",    "group": "0_open@2" },
+        { "when": "viewItem == favLauncher.group",              "command": "favLauncher.renameItem",         "group": "1_edit@0" },
         { "when": "viewItem == favLauncher.item.folder",        "command": "favLauncher.revealInExplorer",   "group": "0_open@1" },
         { "when": "viewItem == favLauncher.item.folder.pinned", "command": "favLauncher.revealInExplorer",   "group": "0_open@1" },
         { "when": "viewItem == favLauncher.item",               "command": "favLauncher.openInCurrentWindow","group": "0_open@1" },
@@ -184,7 +227,10 @@
         { "when": "viewItem =~ /favLauncher\\.item/",           "command": "favLauncher.setColor",           "group": "1_edit@7" },
         { "when": "viewItem =~ /favLauncher\\.item/",           "command": "favLauncher.resetStyle",         "group": "1_edit@8" },
         { "when": "viewItem == favLauncher.item || viewItem == favLauncher.item.pinned || viewItem == favLauncher.item.folder || viewItem == favLauncher.item.folder.pinned", "command": "favLauncher.copyPath",         "group": "2_copy@1" },
-        { "when": "viewItem == favLauncher.item || viewItem == favLauncher.item.pinned || viewItem == favLauncher.item.folder || viewItem == favLauncher.item.folder.pinned", "command": "favLauncher.copyRelativePath", "group": "2_copy@2" }
+        { "when": "viewItem == favLauncher.item || viewItem == favLauncher.item.pinned || viewItem == favLauncher.item.folder || viewItem == favLauncher.item.folder.pinned", "command": "favLauncher.copyRelativePath", "group": "2_copy@2" },
+        { "when": "viewItem =~ /favLauncher\\.item/",    "command": "favLauncher.setStartupItem",       "group": "3_startup@1" },
+        { "when": "viewItem == favLauncher.separator",   "command": "favLauncher.editSeparatorLabel",   "group": "1_edit@1" },
+        { "when": "viewItem == favLauncher.item || viewItem == favLauncher.item.pinned", "command": "favLauncher.editArgs", "group": "1_edit@9" }
       ],
       "explorer/context": [{ "command": "favLauncher.addFromExplorer", "group": "navigation@99" }],
       "editor/title/context": [{ "command": "favLauncher.addFromExplorer", "group": "navigation@99" }],

@@ -103,12 +103,27 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(statusItem);
 
   const updateStatus = () => {
-    const count = items.filter(x => x.type !== "group" && x.type !== "separator").length;
+    const realItems = items.filter(x => x.type !== "group" && x.type !== "separator");
+    const count = realItems.length;
     const deadLinks = provider.countDeadLinks();
     statusItem.text = `$(star-full) Fav${count > 0 ? ` (${count})` : ""}${deadLinks > 0 ? ` $(warning)` : ""}`;
-    statusItem.tooltip = deadLinks > 0
-      ? `Open Favorites — ⚠ ${deadLinks} missing file${deadLinks > 1 ? "s" : ""}`
-      : "Open Favorites";
+
+    // Build breakdown for tooltip
+    const files = realItems.filter(x => x.type === "file").length;
+    const commands = realItems.filter(x => x.type === "command").length;
+    const macros = realItems.filter(x => x.type === "macro").length;
+    const pinned = realItems.filter(x => x.pinned).length;
+    const groups = items.filter(x => x.type === "group").length;
+    const parts: string[] = [
+      `${count} favorite${count !== 1 ? "s" : ""}`,
+      files > 0 ? `${files} file${files !== 1 ? "s" : ""}` : "",
+      commands > 0 ? `${commands} command${commands !== 1 ? "s" : ""}` : "",
+      macros > 0 ? `${macros} macro${macros !== 1 ? "s" : ""}` : "",
+      groups > 0 ? `${groups} group${groups !== 1 ? "s" : ""}` : "",
+      pinned > 0 ? `${pinned} pinned` : "",
+      deadLinks > 0 ? `⚠ ${deadLinks} missing` : "",
+    ].filter(Boolean);
+    statusItem.tooltip = parts.join("  •  ");
   };
   updateStatus();
 
@@ -117,6 +132,46 @@ export function activate(context: vscode.ExtensionContext) {
     updateStatus();
     provider.refresh();
   };
+
+  // ── Git status polling ────────────────────────────────────────────────────
+  const refreshGitStatus = async () => {
+    try {
+      const gitExt = vscode.extensions.getExtension("vscode.git")?.exports;
+      if (!gitExt) { return; }
+      const api = gitExt.getAPI(1);
+      if (!api || api.repositories.length === 0) { return; }
+      const repo = api.repositories[0];
+      const statusMap = new Map<string, string>();
+      for (const change of [...repo.state.workingTreeChanges, ...repo.state.indexChanges]) {
+        const fsPath = change.uri.fsPath;
+        const letter = String.fromCharCode(change.status + 65 > 90 ? 63 : change.status + 65);
+        // Map numeric git status to letter
+        const statusLetters: Record<number, string> = { 0: "?", 1: "A", 2: "D", 3: "M", 5: "M", 6: "R", 7: "C", 8: "U" };
+        statusMap.set(fsPath, statusLetters[change.status] ?? "M");
+      }
+      provider.setGitStatus(statusMap);
+    } catch { /* git not available */ }
+  };
+
+  // Poll git status every 30s and on save
+  const gitPollInterval = setInterval(refreshGitStatus, 30000);
+  context.subscriptions.push({ dispose: () => clearInterval(gitPollInterval) });
+  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => refreshGitStatus()));
+  refreshGitStatus();
+
+  // ── Dirty-file badges ─────────────────────────────────────────────────────
+  const refreshDirtyFiles = () => {
+    const dirty = new Set(
+      vscode.workspace.textDocuments
+        .filter(d => d.isDirty && !d.isUntitled)
+        .map(d => d.uri.fsPath)
+    );
+    provider.setDirtyFiles(dirty);
+  };
+  refreshDirtyFiles();
+  context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => refreshDirtyFiles()));
+  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument(() => refreshDirtyFiles()));
+  context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(() => refreshDirtyFiles()));
 
   // Watch team file for changes
   let teamWatcher: vscode.FileSystemWatcher | undefined;
@@ -133,6 +188,26 @@ export function activate(context: vscode.ExtensionContext) {
     }
   };
   setupTeamWatcher();
+
+  // ── Run on startup ────────────────────────────────────────────────────────
+  const runOnStartup = async () => {
+    const cfg = vscode.workspace.getConfiguration("favLauncher");
+    const startupId = cfg.get<string>("startupItemId", "");
+    if (!startupId) { return; }
+    const target = items.find(x => x.id === startupId);
+    if (!target) { return; }
+    // Small delay so the workspace is fully ready
+    setTimeout(async () => {
+      if (target.type === "file" && target.path) {
+        await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(target.path));
+      } else if (target.type === "command" && target.commandId) {
+        await vscode.commands.executeCommand(target.commandId, ...(target.args ?? []));
+      } else if (target.type === "macro") {
+        await vscode.commands.executeCommand("favLauncher.runMacro", target);
+      }
+    }, 1500);
+  };
+  runOnStartup();
 
   // ── Commands ─────────────────────────────────────────────────────────────
 
@@ -568,6 +643,7 @@ export function activate(context: vscode.ExtensionContext) {
       const uri = await vscode.window.showSaveDialog({ filters: { JSON: ["json"] }, saveLabel: "Export Favorites", defaultUri: vscode.Uri.file("favorites.json") });
       if (!uri) { return; }
       await vscode.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(items, null, 2), "utf8"));
+      await context.globalState.update("favLauncher.lastBackupMs", Date.now());
       vscode.window.showInformationMessage("Favorites exported.");
     })
   );
@@ -695,6 +771,21 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Reset all icons & colors on all items
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.resetAllStyles", async () => {
+      const confirm = await vscode.window.showWarningMessage(
+        "Remove all custom icons and colors from every favorite?",
+        { modal: true },
+        "Reset All"
+      );
+      if (confirm !== "Reset All") { return; }
+      items = items.map(x => ({ ...x, icon: undefined, color: undefined }));
+      await doRefresh();
+      vscode.window.showInformationMessage("All icons and colors have been reset.");
+    })
+  );
+
   // Reset all settings to defaults
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.resetAllSettings", async () => {
@@ -707,8 +798,9 @@ export function activate(context: vscode.ExtensionContext) {
 
       const cfg = vscode.workspace.getConfiguration("favLauncher");
       const keys = [
-        "storageScope", "noteDisplay", "itemDescription",
-        "sortOrder", "compactMode", "autoRevealCurrentFile",
+        "storageScope", "noteDisplay", "itemDescription", "sortOrder",
+        "compactMode", "autoRevealCurrentFile", "backupReminderDays",
+        "showRecentSection", "startupItemId",
       ];
       for (const key of keys) {
         await cfg.update(key, undefined, vscode.ConfigurationTarget.Global);
@@ -820,6 +912,291 @@ export function activate(context: vscode.ExtensionContext) {
     if (!picked || picked.description === "__root__") { return undefined; }
     return picked.description;
   }
+
+  // ── Quick add from clipboard ──────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.addFromClipboard", async () => {
+      const text = await vscode.env.clipboard.readText();
+      if (!text?.trim()) {
+        vscode.window.showWarningMessage("Clipboard is empty.");
+        return;
+      }
+      const trimmed = text.trim();
+      // Detect whether it looks like a file path
+      const looksLikePath = /^[a-zA-Z]:[/\\]/.test(trimmed) || trimmed.startsWith("/") || trimmed.startsWith("./") || trimmed.startsWith("../") || fs.existsSync(trimmed);
+      const type = looksLikePath ? "file" : "command";
+
+      const label = await vscode.window.showInputBox({
+        title: "Add from clipboard",
+        prompt: `Label for "${trimmed.slice(0, 60)}"`,
+        value: path.basename(trimmed) || trimmed.slice(0, 30),
+      });
+      if (label === undefined) { return; }
+
+      const groupId = await pickGroup();
+      const newItem: FavoriteItem = {
+        id: newId(),
+        type,
+        label: label || path.basename(trimmed) || trimmed.slice(0, 30),
+        order: items.length,
+        groupId,
+        ...(type === "file" ? { path: trimmed } : { commandId: trimmed }),
+      };
+      items = [...items, newItem];
+      await doRefresh();
+      vscode.window.showInformationMessage(`Added "${newItem.label}" from clipboard.`);
+    })
+  );
+
+  // ── Scan & remove dead links ──────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.removeDeadLinks", async () => {
+      const dead = items.filter(x => x.type === "file" && x.path && !fs.existsSync(x.path));
+      if (dead.length === 0) {
+        vscode.window.showInformationMessage("No dead links found — all file favorites exist.");
+        return;
+      }
+      const list = dead.map(x => `• ${x.label} (${x.path})`).join("\n");
+      const confirm = await vscode.window.showWarningMessage(
+        `Remove ${dead.length} dead link${dead.length > 1 ? "s" : ""}?\n\n${list}`,
+        { modal: true },
+        "Remove All"
+      );
+      if (confirm !== "Remove All") { return; }
+      const deadIds = new Set(dead.map(x => x.id));
+      items = items.filter(x => !deadIds.has(x.id));
+      await doRefresh();
+      vscode.window.showInformationMessage(`Removed ${dead.length} dead link${dead.length > 1 ? "s" : ""}.`);
+    })
+  );
+
+  // ── Remove duplicates ─────────────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.removeDuplicates", async () => {
+      const seen = new Set<string>();
+      const dupes: FavoriteItem[] = [];
+      for (const item of items) {
+        const key = item.type === "file"
+          ? `file:${item.path}`
+          : item.type === "command"
+            ? `cmd:${item.commandId}`
+            : `other:${item.label}`;
+        if (seen.has(key)) {
+          dupes.push(item);
+        } else {
+          seen.add(key);
+        }
+      }
+      if (dupes.length === 0) {
+        vscode.window.showInformationMessage("No duplicates found.");
+        return;
+      }
+      const list = dupes.map(x => `• ${x.label}`).join("\n");
+      const confirm = await vscode.window.showWarningMessage(
+        `Remove ${dupes.length} duplicate${dupes.length > 1 ? "s" : ""}?\n\n${list}`,
+        { modal: true },
+        "Remove Duplicates"
+      );
+      if (confirm !== "Remove Duplicates") { return; }
+      const dupeIds = new Set(dupes.map(x => x.id));
+      items = items.filter(x => !dupeIds.has(x.id));
+      await doRefresh();
+      vscode.window.showInformationMessage(`Removed ${dupes.length} duplicate${dupes.length > 1 ? "s" : ""}.`);
+    })
+  );
+
+  // ── Jump to group (quick pick) ────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.jumpToGroup", async () => {
+      const groups = items.filter(x => x.type === "group");
+      if (groups.length === 0) {
+        vscode.window.showInformationMessage("No groups yet. Use Add Group to create one.");
+        return;
+      }
+      const picks = groups.map(g => {
+        const count = items.filter(x => x.groupId === g.id && x.type !== "separator").length;
+        return { label: `$(folder) ${g.label}`, description: `${count} item${count !== 1 ? "s" : ""}`, id: g.id };
+      });
+      const picked = await vscode.window.showQuickPick(picks, { title: "Jump to group" });
+      if (!picked) { return; }
+      const group = items.find(x => x.id === (picked as any).id);
+      if (group) {
+        await treeView.reveal(group, { select: true, focus: true, expand: true });
+      }
+    })
+  );
+
+  // ── Open all files in a group ─────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.openAllInGroup", async (node: FavoriteItem) => {
+      if (node.type !== "group") { return; }
+      const children = items.filter(x => x.groupId === node.id && x.type === "file" && x.path);
+      if (children.length === 0) {
+        vscode.window.showInformationMessage(`No file items in group "${node.label}".`);
+        return;
+      }
+      for (const child of children) {
+        await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(child.path!));
+      }
+      vscode.window.showInformationMessage(`Opened ${children.length} file${children.length !== 1 ? "s" : ""} from "${node.label}".`);
+    })
+  );
+
+  // ── Close all editors in a group ──────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.closeAllInGroup", async (node: FavoriteItem) => {
+      if (node.type !== "group") { return; }
+      const paths = new Set(
+        items.filter(x => x.groupId === node.id && x.type === "file" && x.path).map(x => x.path!)
+      );
+      const openTabs = vscode.window.tabGroups.all.flatMap(tg => tg.tabs);
+      let closed = 0;
+      for (const tab of openTabs) {
+        const input = tab.input as any;
+        if (input?.uri && paths.has(input.uri.fsPath)) {
+          await vscode.window.tabGroups.close(tab);
+          closed++;
+        }
+      }
+      vscode.window.showInformationMessage(
+        closed > 0 ? `Closed ${closed} file${closed !== 1 ? "s" : ""} from "${node.label}".` : `No open editors matched group "${node.label}".`
+      );
+    })
+  );
+
+  // ── Item count breakdown (status bar tooltip) ─────────────────────────────
+  // Handled inside updateStatus() below — extended to include breakdown
+
+  // ── Backup reminder ───────────────────────────────────────────────────────
+  const checkBackupReminder = async () => {
+    const cfg = vscode.workspace.getConfiguration("favLauncher");
+    const intervalDays = cfg.get<number>("backupReminderDays", 0);
+    if (!intervalDays) { return; }
+    const lastBackup = context.globalState.get<number>("favLauncher.lastBackupMs", 0);
+    const daysSince = (Date.now() - lastBackup) / (1000 * 60 * 60 * 24);
+    if (daysSince >= intervalDays) {
+      const action = await vscode.window.showInformationMessage(
+        `Fav Launcher: It's been ${Math.floor(daysSince)} day${daysSince >= 2 ? "s" : ""} since your last favorites backup.`,
+        "Export Now",
+        "Dismiss"
+      );
+      if (action === "Export Now") {
+        await vscode.commands.executeCommand("favLauncher.exportFavorites");
+        await context.globalState.update("favLauncher.lastBackupMs", Date.now());
+      } else if (action === "Dismiss") {
+        await context.globalState.update("favLauncher.lastBackupMs", Date.now());
+      }
+    }
+  };
+  checkBackupReminder();
+
+  // ── Add workspace switcher item ───────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.addWorkspace", async () => {
+      const uris = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: "Add as Workspace Favorite",
+        filters: { "Workspace / Folder": ["code-workspace", "*"] },
+      });
+      if (!uris || uris.length === 0) { return; }
+      const wsPath = uris[0].fsPath;
+      const defaultLabel = path.basename(wsPath).replace(/\.code-workspace$/, "");
+      const label = await vscode.window.showInputBox({ title: "Workspace label", value: defaultLabel });
+      if (label === undefined) { return; }
+      const groupId = await pickGroup();
+      const newItem: FavoriteItem = {
+        id: newId(), type: "workspace", label: label || defaultLabel,
+        order: items.length, groupId, workspacePath: wsPath,
+      };
+      items = [...items, newItem];
+      await doRefresh();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.openWorkspace", async (node: FavoriteItem) => {
+      if (!node.workspacePath) { return; }
+      items = items.map(x => x.id === node.id ? { ...x, lastUsed: Date.now() } : x);
+      await saveItems(context, items);
+      const uri = vscode.Uri.file(node.workspacePath);
+      await vscode.commands.executeCommand("vscode.openFolder", uri, { forceNewWindow: true });
+    })
+  );
+
+  // ── Set startup item ──────────────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.setStartupItem", async (node: FavoriteItem) => {
+      const cfg = vscode.workspace.getConfiguration("favLauncher");
+      const current = cfg.get<string>("startupItemId", "");
+      if (current === node.id) {
+        // Toggle off
+        await cfg.update("startupItemId", "", vscode.ConfigurationTarget.Workspace);
+        vscode.window.showInformationMessage(`Startup item cleared.`);
+      } else {
+        await cfg.update("startupItemId", node.id, vscode.ConfigurationTarget.Workspace);
+        vscode.window.showInformationMessage(`"${node.label}" will open automatically when this workspace starts.`);
+      }
+    })
+  );
+
+  // ── Edit separator label ──────────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.editSeparatorLabel", async (node: FavoriteItem) => {
+      if (node.type !== "separator") { return; }
+      const label = await vscode.window.showInputBox({
+        title: "Separator label (leave blank for plain line)",
+        value: node.separatorLabel ?? "",
+        placeHolder: "e.g. Work, Personal, …",
+      });
+      if (label === undefined) { return; }
+      items = items.map(x => x.id === node.id ? { ...x, separatorLabel: label.trim() || undefined } : x);
+      await doRefresh();
+    })
+  );
+
+  // ── Edit command args ─────────────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.editArgs", async (node: FavoriteItem) => {
+      if (node.type !== "command") { return; }
+      const current = JSON.stringify(node.args ?? [], null, 2);
+      const input = await vscode.window.showInputBox({
+        title: `Args for "${node.label}"`,
+        prompt: "Enter a JSON array, e.g. [\"arg1\", { \"key\": true }]",
+        value: current,
+        validateInput: v => {
+          try { const p = JSON.parse(v); if (!Array.isArray(p)) { return "Must be a JSON array"; } return null; }
+          catch { return "Invalid JSON"; }
+        },
+      });
+      if (input === undefined) { return; }
+      const newArgs = JSON.parse(input);
+      items = items.map(x => x.id === node.id ? { ...x, args: newArgs } : x);
+      await doRefresh();
+      vscode.window.showInformationMessage(`Args updated for "${node.label}".`);
+    })
+  );
+
+  // ── Toggle showRecentSection ──────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.toggleRecentSection", async () => {
+      const cfg = vscode.workspace.getConfiguration("favLauncher");
+      const current = cfg.get<boolean>("showRecentSection", false);
+      await cfg.update("showRecentSection", !current, vscode.ConfigurationTarget.Global);
+      provider.refresh();
+      vscode.window.showInformationMessage(`Recent section ${!current ? "enabled" : "disabled"}.`);
+    })
+  );
+
+  // ── Help / README ─────────────────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.openHelp", async () => {
+      const readmePath = path.join(context.extensionPath, "README.md");
+      const uri = vscode.Uri.file(readmePath);
+      await vscode.commands.executeCommand("markdown.showPreview", uri);
+    })
+  );
 }
 
 export function deactivate() {}
