@@ -19,7 +19,6 @@ async function openFile(fsPath: string, beside = false): Promise<void> {
         const input = tab.input as any;
         if (input?.uri && input.uri.fsPath === fsPath) {
           // File is already open — just focus that tab
-          await vscode.window.tabGroups.activeTabGroup;
           await vscode.commands.executeCommand("vscode.open", uri, {
             viewColumn: group.viewColumn,
             preserveFocus: false,
@@ -173,7 +172,6 @@ export function activate(context: vscode.ExtensionContext) {
       const statusMap = new Map<string, string>();
       for (const change of [...repo.state.workingTreeChanges, ...repo.state.indexChanges]) {
         const fsPath = change.uri.fsPath;
-        const letter = String.fromCharCode(change.status + 65 > 90 ? 63 : change.status + 65);
         // Map numeric git status to letter
         const statusLetters: Record<number, string> = { 0: "?", 1: "A", 2: "D", 3: "M", 5: "M", 6: "R", 7: "C", 8: "U" };
         statusMap.set(fsPath, statusLetters[change.status] ?? "M");
@@ -650,7 +648,8 @@ export function activate(context: vscode.ExtensionContext) {
       // Watch for save on this document
       const disposable = vscode.workspace.onDidSaveTextDocument(async saved => {
         if (saved.uri.toString() !== doc.uri.toString()) { return; }
-        const text = saved.getText().replace(/\/\/[^\n]*/g, ""); // strip comments
+        // Strip only lines that are purely comments (start with optional whitespace then //)
+        const text = saved.getText().split("\n").filter(l => !/^\s*\/\//.test(l)).join("\n");
         try {
           const parsed = JSON.parse(text);
           const newSteps: MacroStep[] = (parsed.steps ?? []).filter((s: any) =>
@@ -797,7 +796,14 @@ export function activate(context: vscode.ExtensionContext) {
       const uris = await vscode.window.showOpenDialog({ filters: { JSON: ["json"] }, openLabel: "Import Favorites", canSelectMany: false });
       if (!uris || uris.length === 0) { return; }
       const raw = await vscode.workspace.fs.readFile(uris[0]);
-      const imported: FavoriteItem[] = JSON.parse(Buffer.from(raw).toString("utf8"));
+      let imported: FavoriteItem[];
+      try {
+        imported = JSON.parse(Buffer.from(raw).toString("utf8"));
+        if (!Array.isArray(imported)) { throw new Error("not an array"); }
+      } catch {
+        vscode.window.showErrorMessage("Import failed: the selected file is not a valid Favorites JSON array.");
+        return;
+      }
 
       const existingIds = new Set(items.map(x => x.id));
       const existingPaths = new Set(items.filter(x => x.path).map(x => x.path!));

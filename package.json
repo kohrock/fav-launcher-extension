@@ -1,8 +1,8 @@
 {
   "name": "fav-launcher",
-  "displayName": "Fav Launcher",
-  "description": "Favorite files, folders, commands and macros — with groups, notes, drag & drop and team sharing",
-  "version": "0.2.0",
+  "displayName": "Favorite Launcher",
+  "description": "Quickly access favorite files, folders, commands and macros — with groups, notes, drag & drop and team sharing",
+  "version": "1.0.0",
   "icon": "media/icon.png",
   "publisher": "kohrock",
   "author": {
@@ -26,9 +26,8 @@
     "vscode": "^1.95.0"
   },
   "extensionKind": ["ui", "workspace"],
-  "categories": [
-    "Other"
-  ],
+  "categories": ["Other", "Keymaps"],
+  "keywords": ["favorites", "bookmark", "launcher", "productivity", "files", "commands", "macros", "shortcuts", "workspace", "team"],
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -428,6 +427,10 @@
         "command": "favLauncher.editMacroJson",
         "title": "Edit Macro as JSON",
         "icon": "$(json)"
+      },
+      {
+        "command": "favLauncher.runMacro",
+        "title": "Run Macro"
       }
     ],
     "keybindings": [
