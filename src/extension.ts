@@ -827,13 +827,20 @@ export function activate(context: vscode.ExtensionContext) {
   // Import
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.importFavorites", async () => {
+      vscode.window.showInformationMessage("Import: starting…");
       // 1. Pick file
       const uris = await vscode.window.showOpenDialog({
         filters: { JSON: ["json"] },
         openLabel: "Import Favorites",
         canSelectMany: false,
+        canSelectFiles: true,
+        canSelectFolders: false,
       });
-      if (!uris || uris.length === 0) { return; }
+
+      if (!uris || uris.length === 0) {
+        vscode.window.showWarningMessage("Import cancelled — no file selected.");
+        return;
+      }
 
       // 2. Read and parse
       const filePath = uris[0].fsPath;
