@@ -594,17 +594,17 @@
         {
           "when": "view =~ /favLauncher\\.favoritesView/",
           "command": "favLauncher.openSettings",
-          "group": "9_settings@1"
+          "group": "z_settings@1"
         },
         {
           "when": "view =~ /favLauncher\\.favoritesView/",
           "command": "favLauncher.resetAllSettings",
-          "group": "9_settings@2"
+          "group": "z_settings@2"
         },
         {
           "when": "view =~ /favLauncher\\.favoritesView/",
           "command": "favLauncher.resetAllStyles",
-          "group": "9_settings@3"
+          "group": "z_settings@3"
         },
         {
           "when": "view =~ /favLauncher\\.favoritesView/",
@@ -639,7 +639,7 @@
         {
           "when": "view =~ /favLauncher\\.favoritesView/",
           "command": "favLauncher.openHelp",
-          "group": "navigation@9"
+          "group": "z_settings@0"
         }
       ],
       "view/item/context": [
