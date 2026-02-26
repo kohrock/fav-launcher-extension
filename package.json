@@ -582,17 +582,17 @@
         {
           "when": "view =~ /favLauncher\\.favoritesView/",
           "command": "favLauncher.openSettings",
-          "group": "4_settings@1"
+          "group": "9_settings@1"
         },
         {
           "when": "view =~ /favLauncher\\.favoritesView/",
           "command": "favLauncher.resetAllSettings",
-          "group": "4_settings@2"
+          "group": "9_settings@2"
         },
         {
           "when": "view =~ /favLauncher\\.favoritesView/",
           "command": "favLauncher.resetAllStyles",
-          "group": "4_settings@3"
+          "group": "9_settings@3"
         },
         {
           "when": "view =~ /favLauncher\\.favoritesView/",
