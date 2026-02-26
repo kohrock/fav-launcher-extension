@@ -2,7 +2,7 @@
   "name": "fav-launcher",
   "displayName": "Favorite Launcher",
   "description": "Quickly access favorite files, folders, commands and macros — with groups, notes, drag & drop and team sharing",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "icon": "media/icon.png",
   "publisher": "kohrock",
   "author": {
