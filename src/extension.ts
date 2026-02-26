@@ -277,9 +277,15 @@ export function activate(context: vscode.ExtensionContext) {
   // Add file
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.addCurrentFile", async () => {
+      // Default the dialog to the first workspace folder so it opens there
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri;
       const uris = await vscode.window.showOpenDialog({
-        canSelectFiles: true, canSelectFolders: true, canSelectMany: true,
-        openLabel: "Add to Favorites", title: "Pick files or folders to favorite",
+        canSelectFiles: true,
+        canSelectFolders: true,
+        canSelectMany: true,
+        openLabel: "Add to Favorites",
+        title: "Pick workspace files or folders to favorite",
+        defaultUri: workspaceRoot,
       });
       if (!uris || uris.length === 0) { return; }
       await addFileUris(uris);

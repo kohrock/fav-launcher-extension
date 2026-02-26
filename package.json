@@ -173,7 +173,7 @@
       },
       {
         "command": "favLauncher.addCurrentFile",
-        "title": "Add File or Folder",
+        "title": "Add Workspace File or Folder",
         "icon": "$(file-add)"
       },
       {
