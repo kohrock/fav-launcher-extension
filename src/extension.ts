@@ -788,10 +788,12 @@ export function activate(context: vscode.ExtensionContext) {
   // Export
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.exportFavorites", async () => {
+      const scope = getScope(context);
       const defaultFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
+      const defaultFilename = `favorites-${scope}.json`;
       const defaultUri = defaultFolder
-        ? vscode.Uri.joinPath(defaultFolder, "favorites.json")
-        : vscode.Uri.file(path.join(require("os").homedir(), "favorites.json"));
+        ? vscode.Uri.joinPath(defaultFolder, defaultFilename)
+        : vscode.Uri.file(path.join(require("os").homedir(), defaultFilename));
       const uri = await vscode.window.showSaveDialog({
         filters: { JSON: ["json"] },
         saveLabel: "Export Favorites",
@@ -800,7 +802,9 @@ export function activate(context: vscode.ExtensionContext) {
       if (!uri) { return; }
       await vscode.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(items, null, 2), "utf8"));
       await context.globalState.update("favLauncher.lastBackupMs", Date.now());
-      vscode.window.showInformationMessage(`Favorites exported to ${path.basename(uri.fsPath)} (${items.length} items).`);
+      vscode.window.showInformationMessage(
+        `Exported ${items.length} item${items.length !== 1 ? "s" : ""} from ${scope} scope to ${path.basename(uri.fsPath)}.`
+      );
     })
   );
 
