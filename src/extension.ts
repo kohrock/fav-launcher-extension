@@ -988,6 +988,12 @@ export function activate(context: vscode.ExtensionContext) {
   // Reset style (clear icon + color on one item)
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.resetStyle", async (node: FavoriteItem) => {
+      const confirm = await vscode.window.showWarningMessage(
+        `Reset icon and color for "${node.label}"?`,
+        { modal: true },
+        "Reset"
+      );
+      if (confirm !== "Reset") { return; }
       items = items.map(x => x.id === node.id ? { ...x, icon: undefined, color: undefined } : x);
       await doRefresh();
     })
@@ -997,8 +1003,11 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.resetAllStyles", async () => {
       const confirm = await vscode.window.showWarningMessage(
-        "Remove all custom icons and colors from every favorite?",
-        { modal: true },
+        "Reset all custom icons and colors?",
+        {
+          modal: true,
+          detail: "This will remove every custom icon and color label from all your favorites. This cannot be undone.",
+        },
         "Reset All"
       );
       if (confirm !== "Reset All") { return; }
@@ -1013,10 +1022,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("favLauncher.resetAllSettings", async () => {
       const confirm = await vscode.window.showWarningMessage(
         "Reset all Fav Launcher settings to defaults?",
-        { modal: true },
-        "Reset"
+        {
+          modal: true,
+          detail: "This resets storage scope, sort order, display options, compact mode, backup reminder, and all other settings. Your favorites are not affected.",
+        },
+        "Reset All Settings"
       );
-      if (confirm !== "Reset") { return; }
+      if (confirm !== "Reset All Settings") { return; }
 
       const cfg = vscode.workspace.getConfiguration("favLauncher");
       const keys = [
@@ -1046,8 +1058,11 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
       const confirm = await vscode.window.showWarningMessage(
-        `Delete all ${count} favorite${count !== 1 ? "s" : ""} in ${scope} scope? This cannot be undone.`,
-        { modal: true },
+        `Delete all ${count} favorite${count !== 1 ? "s" : ""} in ${scope} scope?`,
+        {
+          modal: true,
+          detail: "All favorites, groups, macros, and separators in this scope will be permanently removed. This cannot be undone.",
+        },
         "Delete All"
       );
       if (confirm !== "Delete All") { return; }
