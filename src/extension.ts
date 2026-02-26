@@ -838,11 +838,21 @@ export function activate(context: vscode.ExtensionContext) {
       // 2. Read and parse
       const filePath = uris[0].fsPath;
       const filename = path.basename(filePath);
+
+      vscode.window.showInformationMessage(`Reading: ${filePath}`);
+
       let imported: FavoriteItem[];
       try {
-        // Use fs directly — more reliable than vscode.workspace.fs for local files
-        let text = fs.readFileSync(filePath, "utf8");
+        let text: string;
+        try {
+          text = fs.readFileSync(filePath, "utf8");
+        } catch {
+          // fallback to vscode.workspace.fs
+          const raw = await vscode.workspace.fs.readFile(uris[0]);
+          text = Buffer.from(raw).toString("utf8");
+        }
         if (text.charCodeAt(0) === 0xFEFF) { text = text.slice(1); } // strip UTF-8 BOM
+        vscode.window.showInformationMessage(`Read ${text.length} chars from ${filename}`);
         const parsed = JSON.parse(text);
         imported = Array.isArray(parsed) ? parsed
           : Array.isArray(parsed?.items) ? parsed.items
@@ -851,6 +861,7 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.window.showWarningMessage(`"${filename}" contains no items.`);
           return;
         }
+        vscode.window.showInformationMessage(`Parsed ${imported.length} items from ${filename}`);
       } catch (e: any) {
         vscode.window.showErrorMessage(`Import failed reading "${filename}": ${e?.message ?? "unknown error"}`);
         return;
