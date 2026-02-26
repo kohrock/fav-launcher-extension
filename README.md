@@ -2,26 +2,28 @@
 
 **Bookmark files, folders, commands, macros, and workspaces — with groups, notes, drag & drop, and team sharing.**
 
-Fav Launcher gives you a persistent Favorites panel in VS Code where you can pin anything you open or run repeatedly. No more hunting through menus or re-typing commands.
+Fav Launcher gives you a persistent Favorites panel in VS Code / Cursor where you can pin anything you open or run repeatedly. No more hunting through menus or re-typing commands.
 
 ---
 
 ## Getting Started
 
 1. Open the **Favorites** panel — click the ⭐ icon in the Activity Bar, or press `Ctrl+Shift+F`
-2. Click **Add File or Folder** (📄 button) to add the current editor file, or pick any file/folder from the system dialog
-3. Right-click anything in the Explorer or an editor tab → **Add to Favorites**
+2. Click the **Add File or Folder** button (📄) in the toolbar, or pick any file/folder from a system dialog
+3. Right-click any file in the Explorer or an editor tab → **Add to Favorites**
 4. Use the panel to open, run, or organize everything you've saved
 
 ---
 
 ## Panel Overview
 
-The Favorites panel lives in:
+The Favorites panel appears in two places:
 - The **Activity Bar** (left sidebar ⭐ icon) — always visible
 - The **bottom Panel** tab — toggle with `Ctrl+Shift+F`
 
-The **status bar** shows `⭐ Fav (12)` with a live count. Hover it for a full breakdown. A `⚠` appears when any favorited files are missing.
+The **panel title** shows your active scope — e.g. **Favorites — Workspace**, **Favorites — Global**, or **Favorites — Team** — and updates whenever you switch.
+
+The **status bar** shows `⭐ Fav (12)` with a live count. Hover it for a full breakdown. A `⚠` appears when any favorited files are missing from disk.
 
 ---
 
@@ -31,13 +33,13 @@ The **status bar** shows `⭐ Fav (12)` with a live count. Hover it for a full b
 |---|---|
 | Add current file | Click 📄 in panel toolbar |
 | Add any file or folder | Click 📄 → system file picker dialog |
-| Add from Explorer sidebar | Right-click file/folder → **Add to Favorites** |
+| Add from Explorer sidebar | Right-click file/folder → **Add to Favorites** (`Ctrl+Alt+A`) |
 | Add from editor tab | Right-click tab → **Add to Favorites** |
-| Add a VS Code command | Click ➕ in panel toolbar → pick from curated list or type a command ID |
-| Add a macro | Panel `···` → **Add Macro** — sequence of VS Code commands + terminal commands |
-| Add a group (folder) | Panel `···` → **Add Group** |
+| Add a VS Code command | Click ➕ in panel toolbar → pick from list or type a command ID |
+| Add a macro | Panel `···` → **Add Macro** |
+| Add a group | Panel `···` → **Add Group** |
 | Add a separator | Panel `···` → **Add Separator** — visual divider with optional label |
-| Add a workspace | Panel `···` → **Add Workspace / Folder** — opens in a new window when clicked |
+| Add a workspace/folder | Panel `···` → **Add Workspace File or Folder** — opens in a new window when clicked |
 | Add from clipboard | Panel `···` → **Add from Clipboard** — auto-detects file path vs command ID |
 
 ---
@@ -48,22 +50,23 @@ The **status bar** shows `⭐ Fav (12)` with a live count. Hover it for a full b
 - Create a group with **Add Group**, then drag items into it
 - Each group shows a count badge: `(3)`
 - Right-click a group → **Open All Files in Group** or **Close All Editors in Group**
-- Groups can be nested — drag a group into another group
+- Groups can be nested
 
 ### Pinning
 - Right-click any item → **Pin** — pinned items always appear at the top
-- Pinned items launch via `Ctrl+Alt+1` through `Ctrl+Alt+9` (first 9 pinned items in order)
+- Pinned items launch via `Ctrl+Alt+1` through `Ctrl+Alt+9`
 
 ### Drag & Drop
-- Drag items to reorder them manually
-- Drag into a group to move them
+- Drag items to reorder manually
+- Drag into a group to move them inside
 - Drag out of a group to move to root
 
 ### Renaming
 - Right-click any item or group → **Rename**
 
-### Separators with Labels
+### Separators
 - Right-click a separator → **Edit Separator Label** to give it a title like `── Work ──`
+- Right-click → **Edit Separator Label** again → choose **Remove label** to clear it
 
 ---
 
@@ -71,18 +74,20 @@ The **status bar** shows `⭐ Fav (12)` with a live count. Hover it for a full b
 
 | Type | What happens when clicked |
 |---|---|
-| **File** | Opens in the editor |
-| **Folder** | Reveals in the Explorer sidebar |
+| **File** | Opens in the editor — focuses the existing tab if already open |
+| **Folder (in workspace)** | Reveals in Explorer sidebar |
+| **Folder (outside workspace)** | Prompts to open in a new window or add to workspace |
 | **Command** | Executes the VS Code command |
 | **Macro** | Runs each step in sequence |
-| **Workspace** | Opens the folder/workspace in a new VS Code window |
+| **Workspace** | Opens the folder or `.code-workspace` file in a new window |
 
 ### Macros
 Each macro step is either:
 - A **VS Code command** — runs any registered command
 - A **Terminal command** — sends text to the integrated terminal
 
-Edit macro steps: right-click a macro → **Edit Macro Steps**
+Edit macro steps: right-click a macro → **Edit Macro Steps**  
+Edit the entire macro as raw JSON: right-click → **Edit Macro as JSON** — opens in the editor, save to apply
 
 ---
 
@@ -93,8 +98,9 @@ Edit macro steps: right-click a macro → **Edit Macro Steps**
 | `Ctrl+Shift+F` | Open / focus Favorites panel |
 | `Ctrl+Shift+F` (panel focused) | Filter favorites inline |
 | `Ctrl+Alt+1` – `Ctrl+Alt+9` | Launch pinned item #1–9 |
-| `Ctrl+Alt+R` | Reveal current file in the Favorites panel |
+| `Ctrl+Alt+R` | Reveal current file in Favorites panel |
 | `Ctrl+Alt+G` | Jump to group (quick pick) |
+| `Ctrl+Alt+A` | Add selected file/folder to Favorites |
 
 ---
 
@@ -126,7 +132,7 @@ Pinned items always appear first regardless of sort order.
 
 Enable in settings (`favLauncher.showRecentSection: true`) or via Panel `···` → **Toggle Recent Section**.
 
-Shows the 5 most recently used items at the very top of the panel as a virtual "Recent" group.
+Shows the 5 most recently used items at the top of the panel as a virtual "Recent" group.
 
 ---
 
@@ -152,9 +158,9 @@ Settings → `favLauncher.compactMode: true` — hides description text for a de
 
 Hover over any item to see a rich hover card:
 - **File size** and **last modified** date
-- **Git status** (Modified, Added, Deleted, etc.) — updates every 30 seconds
-- **Unsaved changes** indicator (`●` in description, highlighted in hover card)
-- Note, last-used time, pinned status, macro steps
+- **Git status** (Modified, Added, Deleted, etc.) — live from the built-in Git extension
+- **Unsaved changes** indicator (`●` in the label, highlighted in the hover card)
+- Note, last-used time, pinned status, macro steps, and args
 
 ---
 
@@ -168,7 +174,7 @@ Right-click a file or folder favorite:
 
 ## Storage Scopes
 
-Switch scope from the panel toolbar or `···` menu:
+The active scope is shown in the **panel title** and the **status bar tooltip**. Switch scope from the panel toolbar or `···` menu:
 
 | Scope | Where stored | Use when |
 |---|---|---|
@@ -177,16 +183,31 @@ Switch scope from the panel toolbar or `···` menu:
 | **Team** | `.vscode/favorites.json` | Commit to Git to share with your team |
 
 ### Team Favorites
-When **Team** scope is active, all changes write to `.vscode/favorites.json` in your workspace root. Add that file to Git and push — everyone who clones the repo gets the same favorites automatically.
+When **Team** scope is active, all changes write to `.vscode/favorites.json` in your workspace root. Commit and push that file — everyone who clones the repo gets the same favorites automatically.
 
 ---
 
 ## Import & Export
 
-- **Export** — Panel `···` → **Export to JSON** — saves a `.json` backup
-- **Import** — Panel `···` → **Import from JSON** — shows a diff preview (new vs duplicates) before merging
+### Export
+Panel `···` → **Export to JSON**
 
-Export also resets the **backup reminder** timer (configurable via `favLauncher.backupReminderDays`).
+- Saves all favorites from the **currently active scope** to a `.json` file
+- The default filename reflects the scope — e.g. `favorites-workspace.json`, `favorites-global.json`
+- The success message confirms which scope was exported and how many items
+- Resets the **backup reminder** timer (see `favLauncher.backupReminderDays`)
+
+### Import
+Panel `···` → **Import from JSON**
+
+Pick a previously exported `.json` file. If your list is currently empty, items load immediately. If you already have items, you choose:
+
+| Option | What it does |
+|---|---|
+| **Replace** | Clears your current list and loads everything from the file |
+| **Append** | Adds all items from the file to the end of your current list |
+
+> Both options work correctly whether you're importing a fresh export of the same list or merging from a different machine.
 
 ---
 
@@ -194,7 +215,7 @@ Export also resets the **backup reminder** timer (configurable via `favLauncher.
 
 Right-click any file, command, or macro → **Set as Startup Item**.
 
-That item will automatically open or run every time this workspace loads. Right-click again to toggle it off. Stored per-workspace.
+That item will automatically open or run every time this workspace loads. Right-click again to toggle it off.
 
 ---
 
@@ -213,9 +234,18 @@ Both are in the Panel `···` menu.
 
 | Command | What it does |
 |---|---|
-| Right-click → **Reset Icon & Color** | Clears custom icon and color on one item |
+| Right-click item → **Reset Icon & Color** | Clears custom icon and color on one item |
 | Panel `···` → **Reset All Icons & Colors** | Clears all custom styling on every item |
-| Panel `···` → **Reset All Settings to Defaults** | Resets all `favLauncher.*` settings |
+| Panel `···` → **Reset All Settings to Defaults** | Resets all `favLauncher.*` settings to defaults |
+
+---
+
+## Remote & Multi-Machine
+
+Fav Launcher is marked `extensionKind: ["ui"]` — it always runs on the **local machine**, even when connected to a remote via SSH, WSL, or Dev Containers. This ensures:
+- File dialogs, settings, and UI commands always work
+- No "command not found" errors on the remote side
+- You can install the extension **locally** or **on the remote** independently
 
 ---
 
@@ -230,31 +260,37 @@ Both are in the Panel `···` menu.
 | `favLauncher.compactMode` | `false` | Hide descriptions for a denser list |
 | `favLauncher.autoRevealCurrentFile` | `false` | Auto-highlight the current editor file in the panel |
 | `favLauncher.showRecentSection` | `false` | Show a "Recent" group with the last 5 used items |
-| `favLauncher.startupItemId` | `""` | ID of favorite to open/run on workspace startup |
+| `favLauncher.startupItemId` | `""` | ID of the favorite to open/run on workspace startup |
 | `favLauncher.backupReminderDays` | `0` | Days between export reminders (0 = off) |
 
 ---
 
 ## Commands (Command Palette)
 
-Search `Favorites:` in the Command Palette (`Ctrl+Shift+P`) to see all commands:
+Search `Favorites:` in the Command Palette (`Ctrl+Shift+P`):
 
 - `Favorites: Open`
-- `Favorites: Add Current File`  
+- `Favorites: Add Current File`
 - `Favorites: Add Command`
+- `Favorites: Add Macro`
+- `Favorites: Add Group`
+- `Favorites: Add Separator`
+- `Favorites: Add Workspace File or Folder`
+- `Favorites: Add from Clipboard`
 - `Favorites: Filter`
 - `Favorites: Reveal Current File`
 - `Favorites: Set Sort Order`
+- `Favorites: Toggle Recent Section`
+- `Favorites: Jump to Group`
 - `Favorites: Export to JSON`
 - `Favorites: Import from JSON`
 - `Favorites: Remove Dead Links`
 - `Favorites: Remove Duplicates`
-- `Favorites: Toggle Recent Section`
+- `Favorites: Launch Pinned #1` – `#9`
 - `Favorites: Reset All Icons & Colors`
 - `Favorites: Reset All Settings to Defaults`
 - `Favorites: Settings`
-- `Favorites: Launch Pinned #1` – `#9`
-- `Favorites: Jump to Group`
+- `Favorites: Help & Feature Guide`
 
 ---
 
@@ -264,3 +300,5 @@ Search `Favorites:` in the Command Palette (`Ctrl+Shift+P`) to see all commands:
 - **Team favorites** are great for onboarding — commit `.vscode/favorites.json` with links to key files, run configs, and docs
 - **Macros** can combine opening a file, running a build command, and launching a terminal command in one click
 - **Pinned + `Ctrl+Alt+1`** gives you instant one-key access to your most-used file or command
+- **Export scope shows in the filename** — `favorites-global.json` vs `favorites-workspace.json` so you always know what you're restoring
+- **Empty panel** — right-click the placeholder item to get quick-add options without opening the `···` menu
