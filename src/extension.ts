@@ -820,9 +820,10 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Import with diff preview
+  // Import
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.importFavorites", async () => {
+      // 1. Pick file
       const uris = await vscode.window.showOpenDialog({
         filters: { JSON: ["json"] },
         openLabel: "Import Favorites",
@@ -830,18 +831,16 @@ export function activate(context: vscode.ExtensionContext) {
       });
       if (!uris || uris.length === 0) { return; }
 
-      // Read and parse the file
+      // 2. Read and parse
       let imported: FavoriteItem[];
       try {
         const raw = await vscode.workspace.fs.readFile(uris[0]);
         let text = Buffer.from(raw).toString("utf8");
         if (text.charCodeAt(0) === 0xFEFF) { text = text.slice(1); } // strip UTF-8 BOM
         const parsed = JSON.parse(text);
-        // Accept a plain array or a { items: [...] } wrapper
-        imported = Array.isArray(parsed)
-          ? parsed
-          : Array.isArray(parsed?.items) ? parsed.items : null!;
-        if (!Array.isArray(imported)) { throw new Error("Expected a JSON array of favorites"); }
+        imported = Array.isArray(parsed) ? parsed
+          : Array.isArray(parsed?.items) ? parsed.items
+          : (() => { throw new Error("File must contain a JSON array"); })();
       } catch (e: any) {
         vscode.window.showErrorMessage(`Import failed: ${e?.message ?? "invalid JSON"}`);
         return;
@@ -852,80 +851,45 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      // Compute new vs duplicate items (duplicate = same id OR same file path)
-      const existingIds   = new Set(items.map(x => x.id));
-      const existingPaths = new Set(items.filter(x => x.path).map(x => x.path!));
-      const newItems = imported.filter(x =>
-        !existingIds.has(x.id) && (!x.path || !existingPaths.has(x.path))
-      );
-      const dupeItems = imported.filter(x =>
-        existingIds.has(x.id) || (!!x.path && existingPaths.has(x.path))
-      );
+      const filename = path.basename(uris[0].fsPath);
 
-      // Ask what to do
-      const choice = await vscode.window.showQuickPick(
-        [
-          {
-            label: `$(add) Merge`,
-            description: `add ${newItems.length} new item${newItems.length !== 1 ? "s" : ""}, skip ${dupeItems.length} duplicate${dupeItems.length !== 1 ? "s" : ""}`,
-            value: "merge" as const,
-          },
-          {
-            label: `$(replace-all) Replace all`,
-            description: `discard current ${items.length} item${items.length !== 1 ? "s" : ""}, load all ${imported.length} from file`,
-            value: "replace" as const,
-          },
-          {
-            label: "$(eye) Preview before deciding",
-            description: "show what will change, then confirm",
-            value: "preview" as const,
-          },
-        ],
-        { title: `Import "${path.basename(uris[0].fsPath)}" — ${imported.length} items` }
-      );
-      if (!choice) { return; }
-
-      // Preview branch — show a markdown diff, then ask again
-      if (choice.value === "preview") {
-        const lines = [
-          `# Import preview: ${path.basename(uris[0].fsPath)}`,
-          "",
-          `**New items to add (${newItems.length}):**`,
-          ...newItems.map(x => `- \`${x.type}\`  ${x.label}`),
-          "",
-          dupeItems.length > 0 ? `**Already in your list / will be skipped (${dupeItems.length}):**` : "",
-          ...dupeItems.map(x => `- \`${x.type}\`  ${x.label}`),
-        ].filter(l => l !== undefined).join("\n");
-
-        const doc = await vscode.workspace.openTextDocument({ content: lines, language: "markdown" });
-        await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
-
-        const action = await vscode.window.showInformationMessage(
-          `Previewing import — ${newItems.length} new, ${dupeItems.length} duplicate. What would you like to do?`,
-          "Merge New Items", "Replace All", "Cancel"
-        );
-        if (!action || action === "Cancel") { return; }
-        if (action === "Replace All") {
-          items = imported;
-          await doRefresh();
-          vscode.window.showInformationMessage(`Replaced all favorites with ${imported.length} items from file.`);
-        } else {
-          items = [...items, ...newItems];
-          await doRefresh();
-          vscode.window.showInformationMessage(`Added ${newItems.length} new item${newItems.length !== 1 ? "s" : ""}. Skipped ${dupeItems.length} duplicate${dupeItems.length !== 1 ? "s" : ""}.`);
-        }
+      // 3. If list is currently empty, just load directly — no need to ask
+      if (items.length === 0) {
+        items = imported;
+        await doRefresh();
+        vscode.window.showInformationMessage(`Loaded ${imported.length} item${imported.length !== 1 ? "s" : ""} from ${filename}.`);
         return;
       }
 
-      // Merge or Replace
+      // 4. Ask: Replace or Append
+      const choice = await vscode.window.showQuickPick(
+        [
+          {
+            label: `$(replace-all) Replace`,
+            description: `clear current ${items.length} item${items.length !== 1 ? "s" : ""} and load all ${imported.length} from file`,
+            value: "replace" as const,
+          },
+          {
+            label: `$(add) Append`,
+            description: `add all ${imported.length} item${imported.length !== 1 ? "s" : ""} from file to the end of your current list`,
+            value: "append" as const,
+          },
+        ],
+        { title: `Import "${filename}" — ${imported.length} item${imported.length !== 1 ? "s" : ""}` }
+      );
+      if (!choice) { return; }
+
       if (choice.value === "replace") {
         items = imported;
         await doRefresh();
-        vscode.window.showInformationMessage(`Replaced all favorites with ${imported.length} items from file.`);
+        vscode.window.showInformationMessage(`Replaced favorites with ${imported.length} item${imported.length !== 1 ? "s" : ""} from ${filename}.`);
       } else {
-        items = [...items, ...newItems];
+        // Append — give imported items new IDs to avoid conflicts, bump order
+        const maxOrder = items.length > 0 ? Math.max(...items.map(x => x.order ?? 0)) : -1;
+        const appended = imported.map((x, i) => ({ ...x, id: newId(), order: maxOrder + 1 + i }));
+        items = [...items, ...appended];
         await doRefresh();
-        vscode.window.showInformationMessage(`Added ${newItems.length} new item${newItems.length !== 1 ? "s" : ""}. Skipped ${dupeItems.length} duplicate${dupeItems.length !== 1 ? "s" : ""}.`);
+        vscode.window.showInformationMessage(`Appended ${appended.length} item${appended.length !== 1 ? "s" : ""} from ${filename}.`);
       }
     })
   );
