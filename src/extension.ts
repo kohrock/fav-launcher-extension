@@ -213,8 +213,16 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.open", async () => {
-      await vscode.commands.executeCommand("workbench.view.extension.favLauncher");
-      await vscode.commands.executeCommand("favLauncher.favoritesView.focus");
+      // Try sidebar (activity bar) first, then fall back to bottom panel
+      try {
+        await vscode.commands.executeCommand("workbench.view.extension.favLauncherSidebar");
+        await vscode.commands.executeCommand("favLauncher.favoritesViewSidebar.focus");
+      } catch {
+        try {
+          await vscode.commands.executeCommand("workbench.view.extension.favLauncher");
+          await vscode.commands.executeCommand("favLauncher.favoritesView.focus");
+        } catch { /* ignore */ }
+      }
     })
   );
 
@@ -454,10 +462,19 @@ export function activate(context: vscode.ExtensionContext) {
   // Add separator
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.addSeparator", async () => {
+      const separatorLabel = await vscode.window.showInputBox({
+        title: "Separator label (optional)",
+        placeHolder: "e.g. Work, Personal — leave blank for a plain line",
+      });
+      if (separatorLabel === undefined) { return; } // cancelled
       const groupId = await pickGroup();
       const siblings = items.filter(x => x.groupId === groupId);
       const maxOrder = siblings.length > 0 ? Math.max(...siblings.map(x => x.order)) : -1;
-      items = [...items, { id: newId(), type: "separator", label: "---", order: maxOrder + 1, groupId }];
+      items = [...items, {
+        id: newId(), type: "separator", label: "---",
+        separatorLabel: separatorLabel.trim() || undefined,
+        order: maxOrder + 1, groupId,
+      }];
       await doRefresh();
     })
   );
@@ -1145,8 +1162,26 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.editSeparatorLabel", async (node: FavoriteItem) => {
       if (node.type !== "separator") { return; }
+
+      // If there's a label, offer to clear it or edit it
+      if (node.separatorLabel) {
+        const action = await vscode.window.showQuickPick(
+          [
+            { label: "$(edit) Edit label", id: "edit" },
+            { label: "$(trash) Remove label (plain line)", id: "clear" },
+          ],
+          { title: `Separator: "${node.separatorLabel}"` }
+        );
+        if (!action) { return; }
+        if ((action as any).id === "clear") {
+          items = items.map(x => x.id === node.id ? { ...x, separatorLabel: undefined } : x);
+          await doRefresh();
+          return;
+        }
+      }
+
       const label = await vscode.window.showInputBox({
-        title: "Separator label (leave blank for plain line)",
+        title: "Separator label (leave blank to remove)",
         value: node.separatorLabel ?? "",
         placeHolder: "e.g. Work, Personal, …",
       });

@@ -787,6 +787,11 @@
           "group": "1_edit@1"
         },
         {
+          "when": "viewItem == favLauncher.separator",
+          "command": "favLauncher.removeItem",
+          "group": "inline@4"
+        },
+        {
           "when": "viewItem == favLauncher.item || viewItem == favLauncher.item.pinned",
           "command": "favLauncher.editArgs",
           "group": "1_edit@9"
