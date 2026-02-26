@@ -87,6 +87,15 @@ export function activate(context: vscode.ExtensionContext) {
     );
   };
 
+  const scopeLabel = (s: string) =>
+    s === "global" ? "Global" : s === "team" ? "Team" : "Workspace";
+
+  const updateViewTitles = () => {
+    const label = scopeLabel(getScope(context));
+    treeView.title        = `Favorites — ${label}`;
+    treeViewSidebar.title = `Favorites — ${label}`;
+  };
+
   const onReorder = async (draggedId: string, targetId: string | null, parentGroupId: string | undefined) => {
     const draggedIdx = items.findIndex(x => x.id === draggedId);
     if (draggedIdx === -1) { return; }
@@ -122,6 +131,9 @@ export function activate(context: vscode.ExtensionContext) {
     showCollapseAll: true,
   });
   context.subscriptions.push(treeViewSidebar);
+
+  // Set initial panel titles to reflect current scope
+  updateViewTitles();
 
   // Status bar
   const statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 1000);
@@ -1033,6 +1045,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       updateScopeContext();
+      updateViewTitles();
       provider.refresh();
       vscode.window.showInformationMessage("Fav Launcher settings reset to defaults.");
     })
@@ -1092,6 +1105,7 @@ export function activate(context: vscode.ExtensionContext) {
     await vscode.workspace.getConfiguration("favLauncher").update("storageScope", scope, vscode.ConfigurationTarget.Global);
     items = loadItems(context);
     updateScopeContext();
+    updateViewTitles();
     updateStatus();
     setupTeamWatcher();
     provider.refresh();
@@ -1109,6 +1123,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (e.affectsConfiguration("favLauncher.storageScope")) {
         items = loadItems(context);
         updateScopeContext();
+        updateViewTitles();
         updateStatus();
         setupTeamWatcher();
         provider.refresh();
