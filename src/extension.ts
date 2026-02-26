@@ -812,11 +812,15 @@ export function activate(context: vscode.ExtensionContext) {
         defaultUri,
       });
       if (!uri) { return; }
-      await vscode.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(items, null, 2), "utf8"));
-      await context.globalState.update("favLauncher.lastBackupMs", Date.now());
-      vscode.window.showInformationMessage(
-        `Exported ${items.length} item${items.length !== 1 ? "s" : ""} from ${scope} scope to ${path.basename(uri.fsPath)}.`
-      );
+      try {
+        fs.writeFileSync(uri.fsPath, JSON.stringify(items, null, 2), "utf8");
+        await context.globalState.update("favLauncher.lastBackupMs", Date.now());
+        vscode.window.showInformationMessage(
+          `Exported ${items.length} item${items.length !== 1 ? "s" : ""} from ${scope} scope to ${path.basename(uri.fsPath)}.`
+        );
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Export failed: ${e?.message ?? "unknown error"}`);
+      }
     })
   );
 
@@ -832,26 +836,25 @@ export function activate(context: vscode.ExtensionContext) {
       if (!uris || uris.length === 0) { return; }
 
       // 2. Read and parse
+      const filePath = uris[0].fsPath;
+      const filename = path.basename(filePath);
       let imported: FavoriteItem[];
       try {
-        const raw = await vscode.workspace.fs.readFile(uris[0]);
-        let text = Buffer.from(raw).toString("utf8");
+        // Use fs directly — more reliable than vscode.workspace.fs for local files
+        let text = fs.readFileSync(filePath, "utf8");
         if (text.charCodeAt(0) === 0xFEFF) { text = text.slice(1); } // strip UTF-8 BOM
         const parsed = JSON.parse(text);
         imported = Array.isArray(parsed) ? parsed
           : Array.isArray(parsed?.items) ? parsed.items
-          : (() => { throw new Error("File must contain a JSON array"); })();
+          : (() => { throw new Error("File must contain a JSON array of favorites"); })();
+        if (imported.length === 0) {
+          vscode.window.showWarningMessage(`"${filename}" contains no items.`);
+          return;
+        }
       } catch (e: any) {
-        vscode.window.showErrorMessage(`Import failed: ${e?.message ?? "invalid JSON"}`);
+        vscode.window.showErrorMessage(`Import failed reading "${filename}": ${e?.message ?? "unknown error"}`);
         return;
       }
-
-      if (imported.length === 0) {
-        vscode.window.showWarningMessage("Import file contains no items.");
-        return;
-      }
-
-      const filename = path.basename(uris[0].fsPath);
 
       // 3. If list is currently empty, just load directly — no need to ask
       if (items.length === 0) {
