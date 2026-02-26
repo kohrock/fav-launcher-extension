@@ -493,6 +493,12 @@
         "mac": "cmd+alt+r"
       },
       {
+        "command": "favLauncher.addFromExplorer",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a",
+        "when": "editorIsOpen"
+      },
+      {
         "command": "favLauncher.jumpToGroup",
         "key": "ctrl+alt+g",
         "mac": "cmd+alt+g"
@@ -817,13 +823,13 @@
       "editor/title/context": [
         {
           "command": "favLauncher.addFromExplorer",
-          "group": "navigation@99"
+          "group": "1_fav@1"
         }
       ],
       "editor/title": [
         {
           "command": "favLauncher.addFromExplorer",
-          "group": "navigation@99"
+          "group": "1_fav@1"
         }
       ]
     }
