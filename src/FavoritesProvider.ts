@@ -139,7 +139,7 @@ export class FavoritesProvider
         treeItem.description = "⚠ missing";
       } else if (isFolder) {
         treeItem.iconPath = this.coloredIcon(element.icon ?? (element.pinned ? "pinned" : "folder"), element.color);
-        treeItem.command = { command: "favLauncher.revealInExplorer", title: "Reveal in Explorer", arguments: [uri] };
+        treeItem.command = { command: "favLauncher.revealInExplorer", title: "Reveal in Explorer", arguments: [element] };
         treeItem.contextValue = element.pinned ? "favLauncher.item.folder.pinned" : "favLauncher.item.folder";
         if (!compact) { treeItem.description = this.buildDescription(this.shortenPath(element.path), element.note); }
       } else {

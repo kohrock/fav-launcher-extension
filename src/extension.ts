@@ -618,8 +618,45 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Reveal folder in explorer
   context.subscriptions.push(
-    vscode.commands.registerCommand("favLauncher.revealInExplorer", async (uri: vscode.Uri) => {
-      await vscode.commands.executeCommand("revealInExplorer", uri);
+    vscode.commands.registerCommand("favLauncher.revealInExplorer", async (nodeOrUri: FavoriteItem | vscode.Uri) => {
+      // Accept either a FavoriteItem (from tree click) or a Uri (from context menu)
+      let fsPath: string;
+      if (nodeOrUri instanceof vscode.Uri) {
+        fsPath = nodeOrUri.fsPath;
+      } else {
+        fsPath = (nodeOrUri as FavoriteItem).path ?? "";
+        // Track last used
+        items = items.map(x => x.id === (nodeOrUri as FavoriteItem).id ? { ...x, lastUsed: Date.now() } : x);
+        await saveItems(context, items);
+      }
+
+      if (!fsPath) { return; }
+
+      const uri = vscode.Uri.file(fsPath);
+
+      // Check if the folder is inside any workspace folder
+      const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
+      const isInsideWorkspace = workspaceFolders.some(wf =>
+        fsPath === wf.uri.fsPath || fsPath.startsWith(wf.uri.fsPath + path.sep)
+      );
+
+      if (isInsideWorkspace) {
+        // Reveal in the Explorer sidebar
+        await vscode.commands.executeCommand("revealInExplorer", uri);
+      } else {
+        // Outside workspace — offer to open in new window or add to workspace
+        const action = await vscode.window.showInformationMessage(
+          `"${path.basename(fsPath)}" is outside the current workspace.`,
+          "Open in New Window",
+          "Add to Workspace"
+        );
+        if (action === "Open in New Window") {
+          await vscode.commands.executeCommand("vscode.openFolder", uri, { forceNewWindow: true });
+        } else if (action === "Add to Workspace") {
+          const currentCount = workspaceFolders.length;
+          vscode.workspace.updateWorkspaceFolders(currentCount, 0, { uri });
+        }
+      }
     })
   );
 
