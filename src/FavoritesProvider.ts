@@ -146,7 +146,7 @@ export class FavoritesProvider
         if (element.icon || element.color || element.pinned) {
           treeItem.iconPath = this.coloredIcon(element.icon ?? (element.pinned ? "pinned" : "file"), element.color);
         }
-        treeItem.command = { command: "vscode.open", title: "Open", arguments: [uri] };
+        treeItem.command = { command: "favLauncher.openInCurrentWindow", title: "Open", arguments: [element] };
         const pathPart = this.shortenPath(element.path);
         const gitPart = gitBadge ? `[${gitBadge}]` : undefined;
         const dirtyPart = isDirty ? "●" : undefined;

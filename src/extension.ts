@@ -8,6 +8,35 @@ function newId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+/** Open a file, focusing the existing tab if it's already open rather than duplicating it. */
+async function openFile(fsPath: string, beside = false): Promise<void> {
+  const uri = vscode.Uri.file(fsPath);
+
+  if (!beside) {
+    // Check all tab groups for an existing tab with this URI
+    for (const group of vscode.window.tabGroups.all) {
+      for (const tab of group.tabs) {
+        const input = tab.input as any;
+        if (input?.uri && input.uri.fsPath === fsPath) {
+          // File is already open — just focus that tab
+          await vscode.window.tabGroups.activeTabGroup;
+          await vscode.commands.executeCommand("vscode.open", uri, {
+            viewColumn: group.viewColumn,
+            preserveFocus: false,
+          });
+          return;
+        }
+      }
+    }
+  }
+
+  // Not open yet — open normally
+  await vscode.commands.executeCommand(
+    "vscode.open", uri,
+    beside ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active
+  );
+}
+
 function getScope(context: vscode.ExtensionContext): "workspace" | "global" | "team" {
   return vscode.workspace.getConfiguration("favLauncher").get<"workspace" | "global" | "team">("storageScope", "workspace");
 }
@@ -199,7 +228,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Small delay so the workspace is fully ready
     setTimeout(async () => {
       if (target.type === "file" && target.path) {
-        await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(target.path));
+        await openFile(target.path);
       } else if (target.type === "command" && target.commandId) {
         await vscode.commands.executeCommand(target.commandId, ...(target.args ?? []));
       } else if (target.type === "macro") {
@@ -594,25 +623,24 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Open in current window
+  // Open in current window — focus existing tab if already open
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.openInCurrentWindow", async (node: FavoriteItem) => {
       if (node.type === "file" && node.path) {
-        // Track last used
         items = items.map(x => x.id === node.id ? { ...x, lastUsed: Date.now() } : x);
         await saveItems(context, items);
-        await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(node.path), vscode.ViewColumn.Active);
+        await openFile(node.path);
       }
     })
   );
 
-  // Open to side
+  // Open to side — always opens beside (intentional duplicate)
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.openToSide", async (node: FavoriteItem) => {
       if (node.type === "file" && node.path) {
         items = items.map(x => x.id === node.id ? { ...x, lastUsed: Date.now() } : x);
         await saveItems(context, items);
-        await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(node.path), vscode.ViewColumn.Beside);
+        await openFile(node.path, true);
       }
     })
   );
@@ -867,7 +895,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (target.type === "file" && target.path) {
           items = items.map(x => x.id === target.id ? { ...x, lastUsed: Date.now() } : x);
           await saveItems(context, items);
-          await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(target.path), vscode.ViewColumn.Active);
+          await openFile(target.path);
         } else if (target.type === "command" && target.commandId) {
           items = items.map(x => x.id === target.id ? { ...x, lastUsed: Date.now() } : x);
           await saveItems(context, items);
