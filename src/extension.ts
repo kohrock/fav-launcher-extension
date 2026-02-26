@@ -616,6 +616,67 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  // Edit macro as JSON in the editor
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.editMacroJson", async (node: FavoriteItem) => {
+      if (node.type !== "macro") { return; }
+
+      const steps: MacroStep[] = node.macroSteps ??
+        (node.macroCommands ?? []).map(c => ({ kind: "command" as const, commandId: c }));
+
+      const template = {
+        label: node.label,
+        note: node.note ?? "",
+        steps,
+      };
+
+      const helpComment = [
+        "// Edit your macro below and save (Ctrl+S) to apply.",
+        "// Each step is either:",
+        '//   { "kind": "command",  "commandId": "editor.action.formatDocument" }',
+        '//   { "kind": "terminal", "text": "npm run build" }',
+        "// Reorder, add, or remove steps freely. Do NOT change the outer format.",
+        "",
+      ].join("\n");
+
+      const content = helpComment + JSON.stringify(template, null, 2);
+      const uri = vscode.Uri.parse(`untitled:macro-${node.id}.jsonc`);
+      const doc = await vscode.workspace.openTextDocument(uri.with({ scheme: "untitled" }));
+      const edit = new vscode.WorkspaceEdit();
+      edit.insert(doc.uri, new vscode.Position(0, 0), content);
+      await vscode.workspace.applyEdit(edit);
+      await vscode.window.showTextDocument(doc, { preview: false });
+
+      // Watch for save on this document
+      const disposable = vscode.workspace.onDidSaveTextDocument(async saved => {
+        if (saved.uri.toString() !== doc.uri.toString()) { return; }
+        const text = saved.getText().replace(/\/\/[^\n]*/g, ""); // strip comments
+        try {
+          const parsed = JSON.parse(text);
+          const newSteps: MacroStep[] = (parsed.steps ?? []).filter((s: any) =>
+            (s.kind === "command" && s.commandId) || (s.kind === "terminal" && s.text)
+          );
+          if (newSteps.length === 0) {
+            vscode.window.showWarningMessage("Macro needs at least one step — not saved.");
+            return;
+          }
+          const newLabel = (parsed.label ?? node.label).toString().trim() || node.label;
+          const newNote = (parsed.note ?? "").toString().trim() || undefined;
+          items = items.map(x => x.id === node.id
+            ? { ...x, label: newLabel, note: newNote, macroSteps: newSteps, macroCommands: undefined }
+            : x
+          );
+          await doRefresh();
+          vscode.window.showInformationMessage(`Macro "${newLabel}" saved (${newSteps.length} step${newSteps.length !== 1 ? "s" : ""}).`);
+          disposable.dispose();
+        } catch (e) {
+          vscode.window.showErrorMessage(`Invalid JSON — macro not saved. Fix the syntax and save again.`);
+        }
+      });
+      context.subscriptions.push(disposable);
+    })
+  );
+
   // Reveal folder in explorer
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.revealInExplorer", async (nodeOrUri: FavoriteItem | vscode.Uri) => {

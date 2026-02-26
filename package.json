@@ -423,6 +423,11 @@
         "command": "favLauncher.openHelp",
         "title": "Favorites: Help & Feature Guide",
         "icon": "$(question)"
+      },
+      {
+        "command": "favLauncher.editMacroJson",
+        "title": "Edit Macro as JSON",
+        "icon": "$(json)"
       }
     ],
     "keybindings": [
@@ -756,6 +761,11 @@
           "when": "viewItem =~ /favLauncher\\.item/",
           "command": "favLauncher.editMacro",
           "group": "1_edit@6"
+        },
+        {
+          "when": "viewItem =~ /favLauncher\\.item/",
+          "command": "favLauncher.editMacroJson",
+          "group": "1_edit@6b"
         },
         {
           "when": "viewItem =~ /favLauncher\\.item/",
