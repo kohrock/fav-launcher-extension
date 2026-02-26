@@ -804,10 +804,20 @@ export function activate(context: vscode.ExtensionContext) {
       const raw = await vscode.workspace.fs.readFile(uris[0]);
       let imported: FavoriteItem[];
       try {
-        imported = JSON.parse(Buffer.from(raw).toString("utf8"));
+        // Strip UTF-8 BOM if present, then parse
+        let text = Buffer.from(raw).toString("utf8");
+        if (text.charCodeAt(0) === 0xFEFF) { text = text.slice(1); }
+        const parsed = JSON.parse(text);
+        // Support both a raw array and { items: [...] } wrapper
+        imported = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.items) ? parsed.items : null!;
         if (!Array.isArray(imported)) { throw new Error("not an array"); }
-      } catch {
-        vscode.window.showErrorMessage("Import failed: the selected file is not a valid Favorites JSON array.");
+      } catch (e: any) {
+        vscode.window.showErrorMessage(`Import failed: the selected file is not a valid Favorites JSON. ${e?.message ?? ""}`);
+        return;
+      }
+
+      if (imported.length === 0) {
+        vscode.window.showWarningMessage("Import file contains no items.");
         return;
       }
 
@@ -818,18 +828,18 @@ export function activate(context: vscode.ExtensionContext) {
 
       // Show diff summary
       const diffLines = [
-        `📦 Import preview from: ${path.basename(uris[0].fsPath)}`,
+        `# Import preview: ${path.basename(uris[0].fsPath)}`,
         ``,
-        `✅ New items (${newItems.length}):`,
-        ...newItems.map(x => `  + ${x.label} (${x.type})`),
-        dupes.length > 0 ? `\n⏭ Already exists (${dupes.length}):` : "",
-        ...dupes.map(x => `  = ${x.label} (${x.type})`),
-      ].filter(Boolean).join("\n");
+        `**New items (${newItems.length}):**`,
+        ...newItems.map(x => `- \`${x.type}\` ${x.label}`),
+        dupes.length > 0 ? `\n**Already exists / skipped (${dupes.length}):**` : "",
+        ...dupes.map(x => `- \`${x.type}\` ${x.label}`),
+      ].filter(x => x !== "").join("\n");
 
       const choice = await vscode.window.showQuickPick([
-        { label: `$(add) Merge — add ${newItems.length} new items`, description: `skip ${dupes.length} duplicates`, value: "merge" },
-        { label: `$(replace-all) Replace all — overwrite with ${imported.length} items`, value: "replace" },
-        { label: "$(eye) Preview diff in editor", value: "preview" },
+        { label: `$(add) Merge`, description: `add ${newItems.length} new, skip ${dupes.length} duplicates`, value: "merge" },
+        { label: `$(replace-all) Replace all`, description: `overwrite with all ${imported.length} items`, value: "replace" },
+        { label: "$(eye) Preview diff first", description: "open a preview then decide", value: "preview" },
       ], { title: `Import Favorites — ${newItems.length} new, ${dupes.length} duplicate` });
 
       if (!choice) { return; }
@@ -837,26 +847,38 @@ export function activate(context: vscode.ExtensionContext) {
       if (choice.value === "preview") {
         const doc = await vscode.workspace.openTextDocument({ content: diffLines, language: "markdown" });
         await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside);
-        return;
+        // After preview, let user decide
+        const action = await vscode.window.showInformationMessage(
+          `Import ${newItems.length} new items?`,
+          "Merge", "Replace All", "Cancel"
+        );
+        if (!action || action === "Cancel") { return; }
+        if (action === "Replace All") { items = imported; }
+        else { items = [...items, ...newItems]; }
+      } else if (choice.value === "replace") {
+        items = imported;
+      } else {
+        items = [...items, ...newItems];
       }
-
-      if (choice.value === "replace") { items = imported; }
-      else { items = [...items, ...newItems]; }
 
       await doRefresh();
       vscode.window.showInformationMessage(
         choice.value === "replace"
           ? `Replaced favorites with ${imported.length} items.`
-          : `Added ${newItems.length} new items. Skipped ${dupes.length} duplicates.`
+          : `Added ${newItems.length} new item${newItems.length !== 1 ? "s" : ""}. Skipped ${dupes.length} duplicate${dupes.length !== 1 ? "s" : ""}.`
       );
     })
   );
 
   // Open settings
   context.subscriptions.push(
-    vscode.commands.registerCommand("favLauncher.openSettings", () =>
-      vscode.commands.executeCommand("workbench.action.openSettings", "favLauncher")
-    )
+    vscode.commands.registerCommand("favLauncher.openSettings", async () => {
+      try {
+        await vscode.commands.executeCommand("workbench.action.openSettings", "@ext:kohrock.fav-launcher");
+      } catch {
+        await vscode.commands.executeCommand("workbench.action.openSettings", "favLauncher");
+      }
+    })
   );
 
   // Scroll to current file in panel
