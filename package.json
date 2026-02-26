@@ -337,6 +337,10 @@
         "title": "Favorites: Reset All Icons & Colors"
       },
       {
+        "command": "favLauncher.clearAllFavorites",
+        "title": "Favorites: Delete All Favorites"
+      },
+      {
         "command": "favLauncher.launchPinned1",
         "title": "Favorites: Launch Pinned #1"
       },
@@ -590,6 +594,11 @@
           "when": "view =~ /favLauncher\\.favoritesView/",
           "command": "favLauncher.revealCurrentFile",
           "group": "2_view@3"
+        },
+        {
+          "when": "view =~ /favLauncher\\.favoritesView/",
+          "command": "favLauncher.clearAllFavorites",
+          "group": "z_settings@0"
         },
         {
           "when": "view =~ /favLauncher\\.favoritesView/",

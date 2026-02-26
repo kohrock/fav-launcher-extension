@@ -1036,6 +1036,27 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  // Clear all favorites in current scope
+  context.subscriptions.push(
+    vscode.commands.registerCommand("favLauncher.clearAllFavorites", async () => {
+      const scope = getScope(context);
+      const count = items.length;
+      if (count === 0) {
+        vscode.window.showInformationMessage("Favorites list is already empty.");
+        return;
+      }
+      const confirm = await vscode.window.showWarningMessage(
+        `Delete all ${count} favorite${count !== 1 ? "s" : ""} in ${scope} scope? This cannot be undone.`,
+        { modal: true },
+        "Delete All"
+      );
+      if (confirm !== "Delete All") { return; }
+      items = [];
+      await doRefresh();
+      vscode.window.showInformationMessage(`Cleared all favorites in ${scope} scope.`);
+    })
+  );
+
   // Set color label
   const COLORS = ["red", "orange", "yellow", "green", "blue", "purple", "none"];
   const COLOR_LABELS: Record<string, string> = {
