@@ -1192,8 +1192,7 @@ export function activate(context: vscode.ExtensionContext) {
   // ── Help / README ─────────────────────────────────────────────────────────
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.openHelp", async () => {
-      const readmePath = path.join(context.extensionPath, "README.md");
-      const uri = vscode.Uri.file(readmePath);
+      const uri = vscode.Uri.joinPath(context.extensionUri, "README.md");
       await vscode.commands.executeCommand("markdown.showPreview", uri);
     })
   );
