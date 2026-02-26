@@ -78,7 +78,8 @@ export class FavoritesProvider
     if ((element as any).__onboarding) {
       const item = new vscode.TreeItem("Add your first favorite", vscode.TreeItemCollapsibleState.None);
       item.iconPath = new vscode.ThemeIcon("star-add");
-      item.tooltip = "Use the + buttons above to add files, folders or commands";
+      item.tooltip = "Click to add a file or folder — or right-click for all options";
+      item.contextValue = "favLauncher.empty";
       item.command = { command: "favLauncher.addCurrentFile", title: "Add File or Folder" };
       return item;
     }

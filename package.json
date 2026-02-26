@@ -25,7 +25,7 @@
   "engines": {
     "vscode": "^1.95.0"
   },
-  "extensionKind": ["ui", "workspace"],
+  "extensionKind": ["ui"],
   "categories": ["Other", "Keymaps"],
   "keywords": ["favorites", "bookmark", "launcher", "productivity", "files", "commands", "macros", "shortcuts", "workspace", "team"],
   "activationEvents": [
@@ -33,6 +33,18 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsWelcome": [
+      {
+        "view": "favLauncher.favoritesView",
+        "contents": "No favorites yet.\n[Add File or Folder](command:favLauncher.addCurrentFile)\n[Add Command](command:favLauncher.addCommand)\n[Add Macro](command:favLauncher.addMacro)\n[Add Group](command:favLauncher.addGroup)",
+        "when": "false"
+      },
+      {
+        "view": "favLauncher.favoritesViewSidebar",
+        "contents": "No favorites yet.\n[Add File or Folder](command:favLauncher.addCurrentFile)\n[Add Command](command:favLauncher.addCommand)\n[Add Macro](command:favLauncher.addMacro)\n[Add Group](command:favLauncher.addGroup)",
+        "when": "false"
+      }
+    ],
     "viewsContainers": {
       "panel": [
         {
@@ -815,6 +827,36 @@
           "when": "viewItem == favLauncher.item || viewItem == favLauncher.item.pinned",
           "command": "favLauncher.editArgs",
           "group": "1_edit@9"
+        },
+        {
+          "when": "viewItem == favLauncher.empty",
+          "command": "favLauncher.addCurrentFile",
+          "group": "1_add@1"
+        },
+        {
+          "when": "viewItem == favLauncher.empty",
+          "command": "favLauncher.addCommand",
+          "group": "1_add@2"
+        },
+        {
+          "when": "viewItem == favLauncher.empty",
+          "command": "favLauncher.addMacro",
+          "group": "1_add@3"
+        },
+        {
+          "when": "viewItem == favLauncher.empty",
+          "command": "favLauncher.addGroup",
+          "group": "1_add@4"
+        },
+        {
+          "when": "viewItem == favLauncher.empty",
+          "command": "favLauncher.importFavorites",
+          "group": "2_io@1"
+        },
+        {
+          "when": "viewItem == favLauncher.empty",
+          "command": "favLauncher.openSettings",
+          "group": "3_settings@1"
         }
       ],
       "explorer/context": [
