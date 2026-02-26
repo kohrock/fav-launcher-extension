@@ -200,14 +200,14 @@ Panel `···` → **Export to JSON**
 ### Import
 Panel `···` → **Import from JSON**
 
-Pick a previously exported `.json` file. If your list is currently empty, items load immediately. If you already have items, you choose:
+Pick a previously exported `.json` file. If your list is currently empty, items load immediately with no questions asked. If you already have items, you choose:
 
 | Option | What it does |
 |---|---|
-| **Replace** | Clears your current list and loads everything from the file |
-| **Append** | Adds all items from the file to the end of your current list |
+| **Merge** | Adds only items that don't already exist — skips duplicates automatically |
+| **Replace all** | Clears your current list and loads everything from the file |
 
-> Both options work correctly whether you're importing a fresh export of the same list or merging from a different machine.
+Duplicate detection is by content — same file path, same command ID, or same label + type. All imported items get fresh IDs so there are never conflicts, regardless of which machine the file came from.
 
 ---
 
@@ -230,13 +230,16 @@ Both are in the Panel `···` menu.
 
 ---
 
-## Reset Options
+## Reset & Delete Options
+
+All destructive actions show a **modal confirmation dialog** with detail before doing anything.
 
 | Command | What it does |
 |---|---|
 | Right-click item → **Reset Icon & Color** | Clears custom icon and color on one item |
 | Panel `···` → **Reset All Icons & Colors** | Clears all custom styling on every item |
-| Panel `···` → **Reset All Settings to Defaults** | Resets all `favLauncher.*` settings to defaults |
+| Panel `···` → **Reset All Settings to Defaults** | Resets all `favLauncher.*` settings (favorites are not affected) |
+| Panel `···` → **Delete All Favorites** | Permanently removes all favorites in the current scope |
 
 ---
 
@@ -287,6 +290,7 @@ Search `Favorites:` in the Command Palette (`Ctrl+Shift+P`):
 - `Favorites: Remove Dead Links`
 - `Favorites: Remove Duplicates`
 - `Favorites: Launch Pinned #1` – `#9`
+- `Favorites: Delete All Favorites`
 - `Favorites: Reset All Icons & Colors`
 - `Favorites: Reset All Settings to Defaults`
 - `Favorites: Settings`
