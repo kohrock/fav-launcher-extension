@@ -2,7 +2,31 @@
 
 All notable changes to **Fav Launcher** are documented here.
 
-## [1.0.0] — 2026-02-26
+## [0.0.3] — 2026-02-26
+
+### Fixed
+- Screenshot image paths updated to absolute GitHub URLs so they display correctly on the marketplace listing
+
+## [0.0.2] — 2026-02-26
+
+### Added
+- Screenshots added to marketplace listing (panel, context menu, panel menu, tooltip)
+- Panel title now shows active scope — e.g. **Favorites — Workspace**, **Favorites — Global**, **Favorites — Team**
+
+### Fixed
+- Import: smart duplicate detection by file path, command ID, and label+type (not just ID)
+- Import: **Merge** option now correctly skips duplicates and only adds missing items
+- Import: fresh IDs assigned to all imported items to prevent conflicts
+- Import: empty list loads directly without prompting
+- Export: default filename now includes scope (e.g. `favorites-workspace.json`)
+- Export: success message confirms scope and item count
+- All destructive commands (Delete All, Reset All Icons, Reset All Settings, Reset Icon & Color) now show a modal confirmation dialog with detail text
+
+### Added
+- **Delete All Favorites** command — removes all items in the current scope with confirmation
+- Bottom menu reordered: Reset All Icons & Colors → Reset All Settings → Help → Settings
+
+## [0.0.1] — 2026-02-25
 
 ### Added
 
@@ -41,54 +65,21 @@ All notable changes to **Fav Launcher** are documented here.
 **Macros**
 - Steps can be VS Code commands or terminal commands
 - Edit macro steps one-by-one via quick pick
-- Edit Macro as JSON — edit all steps at once in the editor with full JSON support
+- Edit Macro as JSON — edit all steps at once in the editor
 
 **Storage & sharing**
 - Workspace scope (default) — per-project
 - Global scope — shared across all workspaces
 - Team scope — stored in `.vscode/favorites.json`, commit to share with your team
-- Live file watcher for team favorites file
 
 **Import / Export**
-- Export to JSON with backup reminder (configurable interval)
-- Import from JSON with diff preview (new vs. duplicates) before merging or replacing
+- Export to JSON with scope-aware filename and backup reminder
+- Import from JSON — merge or replace
 
-**Filtering & search**
-- Inline filter — type to filter by label, path, command ID, note, or group name
-- Recent section — shows last 5 used items at the top (optional)
-
-**Cleanup**
-- Remove dead links — scan and bulk-remove missing file favorites
-- Remove duplicates — find and remove exact duplicate items
-
-**UI polish**
-- Rich markdown hover cards — file size, last modified, git status, unsaved-change indicator, macro steps, args, note, last-used time
-- Git status badges on file items (`[M]`, `[A]`, `[D]` etc.) updated every 30 seconds
-- Unsaved-change indicator (`●`) on file items with open dirty editors
-- Group badge counts showing number of items in each group
+**UI**
+- Rich markdown hover cards with file size, git status, unsaved changes, macro steps, notes
+- Git status badges on file items updated every 30 seconds
 - Status bar `⭐ Fav` button with live count and breakdown tooltip
-- Dead link warning badge (`⚠`) on status bar
-- Onboarding placeholder when the list is empty
-- Collapse all groups button in toolbar
-- Help button (`?`) opens the full README in Markdown preview
-
-**Context menus**
-- Right-click Explorer items → Add to Favorites
-- Right-click editor tabs → Add to Favorites
-- Full right-click menu on every item: pin, open, open to side, rename, move, duplicate, set icon, set color, edit note, edit macro, copy path, copy relative path, set startup item, remove
-
-**Settings** (`favLauncher.*`)
-- `storageScope` — workspace / global / team
-- `sortOrder` — manual / alpha / type / lastUsed
-- `noteDisplay` — both / inline / tooltip
-- `itemDescription` — both / path / note / none
-- `compactMode` — hide descriptions
-- `autoRevealCurrentFile` — auto-highlight current file
-- `showRecentSection` — show Recent group at top
-- `startupItemId` — item to open/run on workspace load
-- `backupReminderDays` — export reminder interval
-
-**Reset options**
-- Reset icon & color on individual items
-- Reset all icons & colors
-- Reset all settings to defaults
+- Onboarding placeholder with right-click menu when list is empty
+- Help button opens README in Markdown preview
+- Remote-compatible — runs on local machine even in SSH/WSL/Dev Container sessions
