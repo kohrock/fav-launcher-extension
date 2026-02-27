@@ -661,11 +661,12 @@ export function activate(context: vscode.ExtensionContext) {
       ].join("\n");
 
       const content = helpComment + JSON.stringify(template, null, 2);
-      const uri = vscode.Uri.parse(`untitled:macro-${node.id}.jsonc`);
-      const doc = await vscode.workspace.openTextDocument(uri.with({ scheme: "untitled" }));
-      const edit = new vscode.WorkspaceEdit();
-      edit.insert(doc.uri, new vscode.Position(0, 0), content);
-      await vscode.workspace.applyEdit(edit);
+      // Write to OS temp dir to avoid permission issues on Windows
+      const os = require("os");
+      const tmpPath = path.join(os.tmpdir(), `macro-${node.id}.jsonc`);
+      fs.writeFileSync(tmpPath, content, "utf8");
+      const uri = vscode.Uri.file(tmpPath);
+      const doc = await vscode.workspace.openTextDocument(uri);
       await vscode.window.showTextDocument(doc, { preview: false });
 
       // Watch for save on this document
@@ -691,6 +692,8 @@ export function activate(context: vscode.ExtensionContext) {
           await doRefresh();
           vscode.window.showInformationMessage(`Macro "${newLabel}" saved (${newSteps.length} step${newSteps.length !== 1 ? "s" : ""}).`);
           disposable.dispose();
+          // Clean up temp file
+          try { fs.unlinkSync(tmpPath); } catch { }
         } catch (e) {
           vscode.window.showErrorMessage(`Invalid JSON — macro not saved. Fix the syntax and save again.`);
         }
