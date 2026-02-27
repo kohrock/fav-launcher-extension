@@ -539,6 +539,11 @@ export function activate(context: vscode.ExtensionContext) {
   // Rename
   context.subscriptions.push(
     vscode.commands.registerCommand("favLauncher.renameItem", async (node: FavoriteItem) => {
+      // Separators use separatorLabel for display — redirect to that
+      if (node.type === "separator") {
+        await vscode.commands.executeCommand("favLauncher.editSeparatorLabel", node);
+        return;
+      }
       const label = await vscode.window.showInputBox({ title: "Rename", value: node.label });
       if (!label) { return; }
       items = items.map(x => x.id === node.id ? { ...x, label } : x);

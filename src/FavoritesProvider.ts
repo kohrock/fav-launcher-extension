@@ -42,6 +42,7 @@ export class FavoritesProvider
   }
 
   countDeadLinks(): number {
+    if (vscode.env.remoteName) { return 0; } // can't check remote paths locally
     return this.getItems().filter(x => x.type === "file" && x.path && !this.pathExists(x.path)).length;
   }
 
@@ -417,10 +418,15 @@ export class FavoritesProvider
   }
 
   private pathExists(fsPath: string): boolean {
+    // On a remote connection the extension runs locally but paths are remote —
+    // fs.accessSync would always fail. Treat remote paths as existing to avoid
+    // false "missing" warnings.
+    if (vscode.env.remoteName) { return true; }
     try { fs.accessSync(fsPath); return true; } catch { return false; }
   }
 
   private isDirectory(fsPath: string): boolean {
+    if (vscode.env.remoteName) { return false; } // can't stat remote paths locally
     try { return fs.statSync(fsPath).isDirectory(); } catch { return false; }
   }
 

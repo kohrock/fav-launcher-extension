@@ -2,6 +2,18 @@
 
 All notable changes to **Fav Launcher** are documented here.
 
+## [0.0.5] — 2026-02-26
+
+### Fixed
+- Separator rename now correctly updates the visible label (was updating internal `label` field instead of `separatorLabel`)
+- File favorites on remote connections (SSH, WSL, Dev Containers) no longer show false "⚠ missing" warning — path existence checks are skipped when running remotely
+- Dead link count in status bar no longer shows false positives on remote connections
+
+## [0.0.4] — 2026-02-26
+
+### Fixed
+- Changelog versions corrected to match published releases
+
 ## [0.0.3] — 2026-02-26
 
 ### Fixed
