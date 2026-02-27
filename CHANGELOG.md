@@ -2,6 +2,11 @@
 
 All notable changes to **Fav Launcher** are documented here.
 
+## [0.0.6] — 2026-02-26
+
+### Fixed
+- Marketplace screenshots now load correctly using `raw.githubusercontent.com` URLs
+
 ## [0.0.5] — 2026-02-26
 
 ### Fixed
