@@ -4,7 +4,7 @@
 
 Fav Launcher gives you a persistent Favorites panel in VS Code / Cursor where you can pin anything you open or run repeatedly. No more hunting through menus or re-typing commands.
 
-![Favorites panel showing files, groups, commands and macros](https://raw.githubusercontent.com/kohrock/fav-launcher-extension/main/media/screenshot-panel.png)
+![Favorites panel showing files, groups, commands and macros](media/screenshot-panel.png)
 
 ---
 
@@ -46,7 +46,7 @@ The **status bar** shows `⭐ Fav (12)` with a live count. Hover it for a full b
 
 ---
 
-![Right-click context menu on a favorite item](https://raw.githubusercontent.com/kohrock/fav-launcher-extension/main/media/screenshot-context-menu.png)
+![Right-click context menu on a favorite item](media/screenshot-context-menu.png)
 
 ## Organizing
 
@@ -158,11 +158,11 @@ Settings → `favLauncher.compactMode: true` — hides description text for a de
 
 ---
 
-![Panel menu showing all available actions](https://raw.githubusercontent.com/kohrock/fav-launcher-extension/main/media/screenshot-panel-menu.png)
+![Panel menu showing all available actions](media/screenshot-panel-menu.png)
 
 ## File & Git Info in Tooltips
 
-![Rich tooltip hover card with file info and git status](https://raw.githubusercontent.com/kohrock/fav-launcher-extension/main/media/screenshot-tooltip.png)
+![Rich tooltip hover card with file info and git status](media/screenshot-tooltip.png)
 
 Hover over any item to see a rich hover card:
 - **File size** and **last modified** date
