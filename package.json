@@ -2,7 +2,7 @@
   "name": "fav-launcher",
   "displayName": "Favorite Launcher",
   "description": "Quickly access favorite files, folders, commands and macros — with groups, notes, drag & drop and team sharing",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "icon": "media/icon.png",
   "publisher": "kohrock",
   "author": {
@@ -35,24 +35,22 @@
   "contributes": {
     "viewsWelcome": [
       {
-        "view": "favLauncher.favoritesView",
-        "contents": "No favorites yet.\n[Add File or Folder](command:favLauncher.addCurrentFile)\n[Add Command](command:favLauncher.addCommand)\n[Add Macro](command:favLauncher.addMacro)\n[Add Group](command:favLauncher.addGroup)",
+        "view": "favLauncher.globalView",
+        "contents": "No global favorites yet.\n[Add File or Folder](command:favLauncher.addCurrentFile?%5B%22global%22%5D)\n[Add Command](command:favLauncher.addCommand?%5B%22global%22%5D)\n[Add Macro](command:favLauncher.addMacro?%5B%22global%22%5D)\n[Add Group](command:favLauncher.addGroup?%5B%22global%22%5D)",
         "when": "false"
       },
       {
-        "view": "favLauncher.favoritesViewSidebar",
-        "contents": "No favorites yet.\n[Add File or Folder](command:favLauncher.addCurrentFile)\n[Add Command](command:favLauncher.addCommand)\n[Add Macro](command:favLauncher.addMacro)\n[Add Group](command:favLauncher.addGroup)",
+        "view": "favLauncher.workspaceView",
+        "contents": "No workspace favorites yet.\n[Add File or Folder](command:favLauncher.addCurrentFile?%5B%22workspace%22%5D)\n[Add Command](command:favLauncher.addCommand?%5B%22workspace%22%5D)\n[Add Macro](command:favLauncher.addMacro?%5B%22workspace%22%5D)\n[Add Group](command:favLauncher.addGroup?%5B%22workspace%22%5D)",
+        "when": "false"
+      },
+      {
+        "view": "favLauncher.teamView",
+        "contents": "No team favorites yet.\n[Add File or Folder](command:favLauncher.addCurrentFile?%5B%22team%22%5D)\n[Add Command](command:favLauncher.addCommand?%5B%22team%22%5D)\n[Add Macro](command:favLauncher.addMacro?%5B%22team%22%5D)\n[Add Group](command:favLauncher.addGroup?%5B%22team%22%5D)",
         "when": "false"
       }
     ],
     "viewsContainers": {
-      "panel": [
-        {
-          "id": "favLauncher",
-          "title": "Favorites",
-          "icon": "media/star.svg"
-        }
-      ],
       "activitybar": [
         {
           "id": "favLauncherSidebar",
@@ -62,37 +60,24 @@
       ]
     },
     "views": {
-      "favLauncher": [
-        {
-          "id": "favLauncher.favoritesView",
-          "name": "Favorites"
-        }
-      ],
       "favLauncherSidebar": [
         {
-          "id": "favLauncher.favoritesViewSidebar",
-          "name": "Favorites"
+          "id": "favLauncher.globalView",
+          "name": "Global Favorites"
+        },
+        {
+          "id": "favLauncher.workspaceView",
+          "name": "Workspace Favorites"
+        },
+        {
+          "id": "favLauncher.teamView",
+          "name": "Team Favorites"
         }
       ]
     },
     "configuration": {
       "title": "Fav Launcher",
       "properties": {
-        "favLauncher.storageScope": {
-          "type": "string",
-          "enum": [
-            "workspace",
-            "global",
-            "team"
-          ],
-          "enumDescriptions": [
-            "Per workspace folder (default)",
-            "Shared across all workspaces",
-            "Saved to .vscode/favorites.json — commit to share with your team"
-          ],
-          "default": "workspace",
-          "description": "Where to store favorites. Use the toggle button in the panel toolbar to switch quickly."
-        },
         "favLauncher.noteDisplay": {
           "type": "string",
           "enum": [
@@ -166,6 +151,33 @@
           "type": "string",
           "default": "",
           "description": "ID of a favorite item to automatically open/run when this workspace starts. Right-click any item and choose 'Set as Startup Item' to configure."
+        },
+        "favLauncher.ai.defaultTarget": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "codex",
+            "cursor",
+            "clipboard"
+          ],
+          "default": "auto",
+          "description": "Default destination for prompt favorites."
+        },
+        "favLauncher.ai.autoPaste": {
+          "type": "boolean",
+          "default": true,
+          "description": "When running a prompt favorite, attempt to paste the resolved prompt into Codex or Cursor chat after opening."
+        },
+        "favLauncher.teamWorkspaceFolder": {
+          "type": ["number", "string"],
+          "default": 0,
+          "description": "In a multi-root workspace, which folder's Team Favorites (`.vscode/favorites.json`) to use. Use 0-based index (e.g. 0, 1) or the workspace folder name."
+        },
+        "favLauncher.defaultAddScope": {
+          "type": "string",
+          "enum": ["global", "workspace", "team"],
+          "default": "workspace",
+          "description": "When you add a favorite from Explorer (right-click Add to Favorites) or the Command Palette without a view, which list to add to. Ignored when you use the Add button in a Favorites view toolbar (that view's list is used)."
         }
       }
     },
@@ -242,6 +254,16 @@
         "icon": "$(folder)"
       },
       {
+        "command": "favLauncher.moveToScope",
+        "title": "Favorites: Move to…",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "favLauncher.copyToScope",
+        "title": "Favorites: Copy to…",
+        "icon": "$(copy)"
+      },
+      {
         "command": "favLauncher.setIcon",
         "title": "Set Icon",
         "icon": "$(symbol-color)"
@@ -275,21 +297,6 @@
         "command": "favLauncher.setSortOrder",
         "title": "Favorites: Set Sort Order",
         "icon": "$(sort-precedence)"
-      },
-      {
-        "command": "favLauncher.switchToGlobal",
-        "title": "Switch to Global Favorites",
-        "icon": "$(globe)"
-      },
-      {
-        "command": "favLauncher.switchToWorkspace",
-        "title": "Switch to Workspace Favorites",
-        "icon": "$(root-folder)"
-      },
-      {
-        "command": "favLauncher.switchToTeam",
-        "title": "Switch to Team Favorites",
-        "icon": "$(organization)"
       },
       {
         "command": "favLauncher.exportFavorites",
@@ -447,6 +454,34 @@
       {
         "command": "favLauncher.runMacro",
         "title": "Run Macro"
+      },
+      {
+        "command": "favLauncher.addPrompt",
+        "title": "Add AI Prompt",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "favLauncher.runPrompt",
+        "title": "Favorites: Run Prompt"
+      },
+      {
+        "command": "favLauncher.copyResolvedPrompt",
+        "title": "Favorites: Copy Resolved Prompt"
+      },
+      {
+        "command": "favLauncher.editPrompt",
+        "title": "Favorites: Edit Prompt",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "favLauncher.editPromptJson",
+        "title": "Edit Prompt as JSON",
+        "icon": "$(json)"
+      },
+      {
+        "command": "favLauncher.clonePrompt",
+        "title": "Clone Prompt",
+        "icon": "$(copy)"
       }
     ],
     "keybindings": [
@@ -459,7 +494,7 @@
       {
         "command": "favLauncher.filterFavorites",
         "key": "ctrl+shift+f",
-        "when": "focusedView == favLauncher.favoritesView || focusedView == favLauncher.favoritesViewSidebar"
+        "when": "focusedView == favLauncher.globalView || focusedView == favLauncher.workspaceView || focusedView == favLauncher.teamView"
       },
       {
         "command": "favLauncher.launchPinned1",
@@ -525,142 +560,111 @@
     ],
     "menus": {
       "view/title": [
+        { "when": "view == favLauncher.globalView", "command": "favLauncher.addCurrentFile", "group": "navigation@1", "args": ["global"] },
+        { "when": "view == favLauncher.workspaceView", "command": "favLauncher.addCurrentFile", "group": "navigation@1", "args": ["workspace"] },
+        { "when": "view == favLauncher.teamView", "command": "favLauncher.addCurrentFile", "group": "navigation@1", "args": ["team"] },
+        { "when": "view == favLauncher.globalView", "command": "favLauncher.addCommand", "group": "navigation@2", "args": ["global"] },
+        { "when": "view == favLauncher.workspaceView", "command": "favLauncher.addCommand", "group": "navigation@2", "args": ["workspace"] },
+        { "when": "view == favLauncher.teamView", "command": "favLauncher.addCommand", "group": "navigation@2", "args": ["team"] },
+        { "when": "view == favLauncher.globalView", "command": "favLauncher.addPrompt", "group": "navigation@3", "args": ["global"] },
+        { "when": "view == favLauncher.workspaceView", "command": "favLauncher.addPrompt", "group": "navigation@3", "args": ["workspace"] },
+        { "when": "view == favLauncher.teamView", "command": "favLauncher.addPrompt", "group": "navigation@3", "args": ["team"] },
+        { "when": "view == favLauncher.globalView", "command": "favLauncher.addGroup", "group": "1_add@1", "args": ["global"] },
+        { "when": "view == favLauncher.workspaceView", "command": "favLauncher.addGroup", "group": "1_add@1", "args": ["workspace"] },
+        { "when": "view == favLauncher.teamView", "command": "favLauncher.addGroup", "group": "1_add@1", "args": ["team"] },
+        { "when": "view == favLauncher.globalView", "command": "favLauncher.addMacro", "group": "1_add@2", "args": ["global"] },
+        { "when": "view == favLauncher.workspaceView", "command": "favLauncher.addMacro", "group": "1_add@2", "args": ["workspace"] },
+        { "when": "view == favLauncher.teamView", "command": "favLauncher.addMacro", "group": "1_add@2", "args": ["team"] },
+        { "when": "view == favLauncher.globalView", "command": "favLauncher.addSeparator", "group": "1_add@3", "args": ["global"] },
+        { "when": "view == favLauncher.workspaceView", "command": "favLauncher.addSeparator", "group": "1_add@3", "args": ["workspace"] },
+        { "when": "view == favLauncher.teamView", "command": "favLauncher.addSeparator", "group": "1_add@3", "args": ["team"] },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/ && favLauncher.scope == 'workspace'",
-          "command": "favLauncher.switchToGlobal",
-          "group": "navigation@0"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/ && favLauncher.scope == 'global'",
-          "command": "favLauncher.switchToWorkspace",
-          "group": "navigation@0"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/ && favLauncher.scope == 'team'",
-          "command": "favLauncher.switchToWorkspace",
-          "group": "navigation@0"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/",
-          "command": "favLauncher.addCurrentFile",
-          "group": "navigation@1"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/",
-          "command": "favLauncher.addCommand",
-          "group": "navigation@2"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/",
-          "command": "favLauncher.filterFavorites",
-          "group": "navigation@3"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/",
-          "command": "favLauncher.addGroup",
-          "group": "1_add@1"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/",
-          "command": "favLauncher.addMacro",
-          "group": "1_add@2"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/",
-          "command": "favLauncher.addSeparator",
-          "group": "1_add@3"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.setSortOrder",
           "group": "2_view@1"
         },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
-          "command": "favLauncher.switchToTeam",
-          "group": "2_view@2"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.exportFavorites",
           "group": "3_io@1"
         },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.importFavorites",
           "group": "3_io@2"
         },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.revealCurrentFile",
           "group": "2_view@3"
         },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.clearAllFavorites",
           "group": "z_settings@0"
         },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.resetAllStyles",
           "group": "z_settings@1"
         },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.resetAllSettings",
           "group": "z_settings@2"
         },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.openSettings",
           "group": "z_settings@4"
         },
+        { "when": "view == favLauncher.globalView", "command": "favLauncher.addFromClipboard", "group": "1_add@5", "args": ["global"] },
+        { "when": "view == favLauncher.workspaceView", "command": "favLauncher.addFromClipboard", "group": "1_add@5", "args": ["workspace"] },
+        { "when": "view == favLauncher.teamView", "command": "favLauncher.addFromClipboard", "group": "1_add@5", "args": ["team"] },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
-          "command": "favLauncher.addFromClipboard",
-          "group": "1_add@4"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.removeDeadLinks",
           "group": "5_cleanup@1"
         },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.removeDuplicates",
           "group": "5_cleanup@2"
         },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.jumpToGroup",
           "group": "2_view@4"
         },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.toggleRecentSection",
           "group": "2_view@5"
         },
+        { "when": "view == favLauncher.globalView", "command": "favLauncher.addWorkspace", "group": "1_add@5", "args": ["global"] },
+        { "when": "view == favLauncher.workspaceView", "command": "favLauncher.addWorkspace", "group": "1_add@5", "args": ["workspace"] },
+        { "when": "view == favLauncher.teamView", "command": "favLauncher.addWorkspace", "group": "1_add@5", "args": ["team"] },
         {
-          "when": "view =~ /favLauncher\\.favoritesView/",
-          "command": "favLauncher.addWorkspace",
-          "group": "1_add@5"
-        },
-        {
-          "when": "view =~ /favLauncher\\.favoritesView/",
+          "when": "view == favLauncher.globalView || view == favLauncher.workspaceView || view == favLauncher.teamView",
           "command": "favLauncher.openHelp",
           "group": "z_settings@3"
         }
       ],
       "view/item/context": [
         {
-          "when": "viewItem == favLauncher.item",
+          "when": "viewItem == favLauncher.item || viewItem == favLauncher.item.folder || viewItem == favLauncher.item.command || viewItem == favLauncher.item.macro || viewItem == favLauncher.item.prompt || viewItem == favLauncher.item.workspace",
           "command": "favLauncher.pinItem",
           "group": "inline@1"
         },
         {
-          "when": "viewItem == favLauncher.item.pinned",
+          "when": "viewItem == favLauncher.item.pinned || viewItem == favLauncher.item.folder.pinned || viewItem == favLauncher.item.command.pinned || viewItem == favLauncher.item.macro.pinned || viewItem == favLauncher.item.prompt.pinned || viewItem == favLauncher.item.workspace.pinned",
           "command": "favLauncher.unpinItem",
           "group": "inline@1"
+        },
+        {
+          "when": "viewItem == favLauncher.item.workspace || viewItem == favLauncher.item.workspace.pinned",
+          "command": "favLauncher.openWorkspace",
+          "group": "0_open@1"
         },
         {
           "when": "viewItem == favLauncher.item.folder",
@@ -778,6 +782,16 @@
           "group": "1_edit@3"
         },
         {
+          "when": "viewItem =~ /favLauncher\\.item/ || viewItem == favLauncher.group",
+          "command": "favLauncher.moveToScope",
+          "group": "1_edit@3b"
+        },
+        {
+          "when": "viewItem =~ /favLauncher\\.item/ || viewItem == favLauncher.group",
+          "command": "favLauncher.copyToScope",
+          "group": "1_edit@3c"
+        },
+        {
           "when": "viewItem =~ /favLauncher\\.item/",
           "command": "favLauncher.setIcon",
           "group": "1_edit@4"
@@ -788,12 +802,12 @@
           "group": "1_edit@5"
         },
         {
-          "when": "viewItem =~ /favLauncher\\.item/",
+          "when": "viewItem == favLauncher.item.macro || viewItem == favLauncher.item.macro.pinned",
           "command": "favLauncher.editMacro",
           "group": "1_edit@6"
         },
         {
-          "when": "viewItem =~ /favLauncher\\.item/",
+          "when": "viewItem == favLauncher.item.macro || viewItem == favLauncher.item.macro.pinned",
           "command": "favLauncher.editMacroJson",
           "group": "1_edit@6b"
         },
@@ -833,7 +847,7 @@
           "group": "inline@4"
         },
         {
-          "when": "viewItem == favLauncher.item || viewItem == favLauncher.item.pinned",
+          "when": "viewItem == favLauncher.item.command || viewItem == favLauncher.item.command.pinned",
           "command": "favLauncher.editArgs",
           "group": "1_edit@9"
         },
@@ -859,6 +873,11 @@
         },
         {
           "when": "viewItem == favLauncher.empty",
+          "command": "favLauncher.addPrompt",
+          "group": "1_add@5"
+        },
+        {
+          "when": "viewItem == favLauncher.empty",
           "command": "favLauncher.importFavorites",
           "group": "2_io@1"
         },
@@ -866,6 +885,31 @@
           "when": "viewItem == favLauncher.empty",
           "command": "favLauncher.openSettings",
           "group": "3_settings@1"
+        },
+        {
+          "when": "viewItem == favLauncher.item.prompt || viewItem == favLauncher.item.prompt.pinned",
+          "command": "favLauncher.runPrompt",
+          "group": "0_open@1"
+        },
+        {
+          "when": "viewItem == favLauncher.item.prompt || viewItem == favLauncher.item.prompt.pinned",
+          "command": "favLauncher.copyResolvedPrompt",
+          "group": "0_open@2"
+        },
+        {
+          "when": "viewItem == favLauncher.item.prompt || viewItem == favLauncher.item.prompt.pinned",
+          "command": "favLauncher.editPrompt",
+          "group": "1_edit@1"
+        },
+        {
+          "when": "viewItem == favLauncher.item.prompt || viewItem == favLauncher.item.prompt.pinned",
+          "command": "favLauncher.clonePrompt",
+          "group": "1_edit@2b"
+        },
+        {
+          "when": "viewItem == favLauncher.item.prompt || viewItem == favLauncher.item.prompt.pinned",
+          "command": "favLauncher.editPromptJson",
+          "group": "1_edit@2c"
         }
       ],
       "explorer/context": [

@@ -2,6 +2,30 @@
 
 All notable changes to **Fav Launcher** are documented here.
 
+## [0.0.9] — 2026-03-17
+
+### Added
+- **Three separate sidebar views**: **Global Favorites**, **Workspace Favorites**, and **Team Favorites** — each with its own TreeView, like the Debug sidebar. Hide or reorder views via the sidebar UI.
+
+### Changed
+- Replaced the single Favorites view (with collapsible sections) and scope switcher with three independent views. Scope is determined by which view you use; there is no `favLauncher.storageScope` setting or scope switch commands.
+- Bottom panel Favorites view removed; all Favorites views live in the Activity Bar sidebar.
+- Commands that modify favorites (Add, Import, Clear All, etc.) now accept an optional scope argument when invoked from the Command Palette; when run from a view’s toolbar, you can be prompted to choose the target list if needed.
+
+### Removed
+- `favLauncher.storageScope` configuration and **Switch to Global/Workspace/Team** commands.
+- `favLauncher.sectionLayout` and **Configure Section** / **Reorder Sections** commands.
+
+## [0.0.8] — 2026-03-16
+
+### Added
+- Multi-scope layout in the Favorites view: three collapsible, iconized sections for **Global**, **Workspace**, and **Team** favorites (superseded in 0.0.9 by three separate views).
+
+## [0.0.7] — 2026-02-26
+
+### Fixed
+- Edit Macro as JSON now writes to OS temp directory instead of C:\ root — fixes permission error on Windows
+
 ## [0.0.6] — 2026-02-26
 
 ### Fixed

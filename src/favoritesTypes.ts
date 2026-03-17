@@ -1,4 +1,4 @@
-export type FavoriteType = "file" | "command" | "macro" | "separator" | "group" | "workspace";
+export type FavoriteType = "file" | "command" | "macro" | "separator" | "group" | "workspace" | "prompt";
 
 export type MacroStep =
   | { kind: "command"; commandId: string }
@@ -31,6 +31,11 @@ export type FavoriteItem = {
 
   // workspace switcher
   workspacePath?: string;   // path to .code-workspace file or folder
+
+  // prompt favorite
+  promptTemplate?: string;
+  targetOverride?: "auto" | "codex" | "cursor" | "clipboard";
+  pasteAfterOpen?: boolean;
 
   // optional note
   note?: string;

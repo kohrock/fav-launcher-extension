@@ -19,13 +19,13 @@ Fav Launcher gives you a persistent Favorites panel in VS Code / Cursor where yo
 
 ## Panel Overview
 
-The Favorites panel appears in two places:
-- The **Activity Bar** (left sidebar ⭐ icon) — always visible
-- The **bottom Panel** tab — toggle with `Ctrl+Shift+F`
+The **Favorites** sidebar (⭐ in the Activity Bar) contains **three separate views**:
 
-The **panel title** shows your active scope — e.g. **Favorites — Workspace**, **Favorites — Global**, or **Favorites — Team** — and updates whenever you switch.
+- **Global Favorites** — stored in VS Code `globalState` (same list in every project)
+- **Workspace Favorites** — stored in VS Code `workspaceState` (per-project)
+- **Team Favorites** — stored in `.vscode/favorites.json` (commit to Git to share)
 
-The **status bar** shows `⭐ Fav (12)` with a live count. Hover it for a full breakdown. A `⚠` appears when any favorited files are missing from disk.
+Each view has its own list. You can hide or reorder the views via the sidebar (right-click the view title or use the view container menu). The **status bar** shows `⭐ Fav (12)` with the total count across all three; hover for a breakdown. A `⚠` appears when any favorited files are missing from disk.
 
 ---
 
@@ -43,6 +43,7 @@ The **status bar** shows `⭐ Fav (12)` with a live count. Hover it for a full b
 | Add a separator | Panel `···` → **Add Separator** — visual divider with optional label |
 | Add a workspace/folder | Panel `···` → **Add Workspace File or Folder** — opens in a new window when clicked |
 | Add from clipboard | Panel `···` → **Add from Clipboard** — auto-detects file path vs command ID |
+| Add AI Prompt | Click the prompt icon in the toolbar or Panel `···` → **Add AI Prompt** — reusable prompt templates for Codex/Cursor chat (see [AI Prompts](#ai-prompts)) |
 
 ---
 
@@ -65,6 +66,9 @@ The **status bar** shows `⭐ Fav (12)` with a live count. Hover it for a full b
 - Drag into a group to move them inside
 - Drag out of a group to move to root
 
+### Move and copy between lists
+- Right-click any item or group → **Favorites: Move to…** or **Favorites: Copy to…** to move or copy it to another list (Global, Workspace, or Team). You choose the target list and, if the target has groups, which group to add it to.
+
 ### Renaming
 - Right-click any item or group → **Rename**
 
@@ -84,6 +88,7 @@ The **status bar** shows `⭐ Fav (12)` with a live count. Hover it for a full b
 | **Command** | Executes the VS Code command |
 | **Macro** | Runs each step in sequence |
 | **Workspace** | Opens the folder or `.code-workspace` file in a new window |
+| **AI Prompt** | Resolves the template (with `${selection}`, `${file}`, etc.), then sends to Codex, Cursor, or clipboard — see [AI Prompts](#ai-prompts) |
 
 ### Macros
 Each macro step is either:
@@ -92,6 +97,46 @@ Each macro step is either:
 
 Edit macro steps: right-click a macro → **Edit Macro Steps**  
 Edit the entire macro as raw JSON: right-click → **Edit Macro as JSON** — opens in the editor, save to apply
+
+---
+
+## AI Prompts
+
+**AI Prompt** favorites are reusable prompt templates you can run to send resolved text to **Codex**, **Cursor**, or the clipboard. Handy for “explain this”, “refactor this”, code review, or any template you use often in chat.
+
+### Add an AI Prompt
+
+- Click the prompt icon in a Favorites view toolbar, or Panel `···` → **Add AI Prompt**
+- Pick a starter template (see **Templates** below) or start from scratch
+- Edit the template: use tokens like `${selection}`, `${file}`, `${relativePath}`, `${workspaceFolder}`, `${clipboard}`, and `${input:Label}` (prompts you for a value). You can combine them with your own text.
+- Choose where to send the resolved prompt: **Auto** (detects Codex or Cursor), **Codex**, **Cursor**, or **Clipboard**
+
+### Templates
+
+When you add an AI Prompt, you can start from one of these templates:
+
+| Template | Purpose |
+|---|---|
+| **Blank Prompt** | Empty template with commented examples of all tokens. Use this to build a custom prompt from scratch. |
+| **Explain Selection** | Asks what you want explained, then sends the selected code plus file/workspace context. Good for “explain this code” or “how does this work?” |
+| **Planning Prompt** | Planning-only: asks for a plan title and change request, then requests a markdown implementation plan (checklist, decisions with pros/cons, scope, risks). Instructs the AI to write the plan to a file and summarize in chat. |
+| **Review Selection** | Code review: you specify the review goal; the prompt sends the selection and asks for assessment, bugs, maintainability, performance, and improvements. |
+| **Debug Issue** | You describe the problem or symptom; the prompt sends the selection and context and asks for likely causes, what to inspect, debugging steps, and assumptions. |
+
+### Run a prompt
+
+- Click the prompt favorite in the list, or right-click → **Favorites: Run Prompt**
+- If the template has `${input:...}` tokens, you’ll be asked for values
+- The resolved prompt is sent to the chosen destination (and optionally pasted into chat)
+
+### Settings
+
+| Setting | Default | Description |
+|---|---|---|
+| `favLauncher.ai.defaultTarget` | `auto` | Default destination: `auto` (detect Codex/Cursor), `codex`, `cursor`, or `clipboard` |
+| `favLauncher.ai.autoPaste` | `true` | When running a prompt, paste the resolved text into the chat input after opening |
+
+Right-click a prompt favorite → **Favorites: Edit Prompt** or **Edit Prompt as JSON** to change the template or destination.
 
 ---
 
@@ -182,13 +227,22 @@ Right-click a file or folder favorite:
 
 ## Storage Scopes
 
-The active scope is shown in the **panel title** and the **status bar tooltip**. Switch scope from the panel toolbar or `···` menu:
+Each of the three sidebar views is tied to a fixed scope:
 
-| Scope | Where stored | Use when |
+| View | Where stored | Use when |
 |---|---|---|
-| **Workspace** (default) | VS Code `workspaceState` | Per-project favorites |
-| **Global** | VS Code `globalState` | Same favorites in every project |
-| **Team** | `.vscode/favorites.json` | Commit to Git to share with your team |
+| **Global Favorites** | VS Code `globalState` | Same favorites in every project |
+| **Workspace Favorites** | VS Code `workspaceState` | Per-project favorites |
+| **Team Favorites** | `.vscode/favorites.json` | Commit to Git to share with your team |
+
+**Where new favorites are saved**
+
+- **Add from a Favorites view** (toolbar buttons or welcome links in Global / Workspace / Team): the new item is added to **that view’s list**.
+- **Add from Explorer** (right‑click file → **Add to Favorites**) or from the Command Palette: the new item is added to the list set in **Fav Launcher › Default Add Scope** (default: **Workspace**). Change that setting to make “Add to Favorites” use Global or Team by default.
+
+### Multi-root workspaces
+
+If you have more than one folder in the workspace, **Team Favorites** uses one folder’s `.vscode/favorites.json`. By default it uses the **first** folder. To use a different folder, set **Fav Launcher › Team Workspace Folder** to a 0-based index (e.g. `0` or `1`) or the workspace folder name. The Team view and “add to Team” both use this folder.
 
 ### Team Favorites
 When **Team** scope is active, all changes write to `.vscode/favorites.json` in your workspace root. Commit and push that file — everyone who clones the repo gets the same favorites automatically.
@@ -200,7 +254,7 @@ When **Team** scope is active, all changes write to `.vscode/favorites.json` in 
 ### Export
 Panel `···` → **Export to JSON**
 
-- Saves all favorites from the **currently active scope** to a `.json` file
+- Exports the list chosen by **Fav Launcher › Default Add Scope** (default: Workspace). Use the setting to control which list is exported when you run the command.
 - The default filename reflects the scope — e.g. `favorites-workspace.json`, `favorites-global.json`
 - The success message confirms which scope was exported and how many items
 - Resets the **backup reminder** timer (see `favLauncher.backupReminderDays`)
@@ -247,7 +301,7 @@ All destructive actions show a **modal confirmation dialog** with detail before 
 | Right-click item → **Reset Icon & Color** | Clears custom icon and color on one item |
 | Panel `···` → **Reset All Icons & Colors** | Clears all custom styling on every item |
 | Panel `···` → **Reset All Settings to Defaults** | Resets all `favLauncher.*` settings (favorites are not affected) |
-| Panel `···` → **Delete All Favorites** | Permanently removes all favorites in the current scope |
+| Panel `···` → **Delete All Favorites** | Permanently removes all favorites in the chosen list (run from a view’s toolbar for that list, or from the palette to use the default list) |
 
 ---
 
@@ -264,7 +318,8 @@ Fav Launcher is marked `extensionKind: ["ui"]` — it always runs on the **local
 
 | Setting | Default | Description |
 |---|---|---|
-| `favLauncher.storageScope` | `workspace` | Where to store favorites: `workspace`, `global`, or `team` |
+| `favLauncher.defaultAddScope` | `workspace` | When adding from Explorer or the Command Palette (no view), which list to add to: `global`, `workspace`, or `team` |
+| `favLauncher.teamWorkspaceFolder` | `0` | In a multi-root workspace, which folder’s Team Favorites file to use: 0-based index (e.g. `0`, `1`) or workspace folder name |
 | `favLauncher.sortOrder` | `manual` | Sort order: `manual`, `alpha`, `type`, `lastUsed` |
 | `favLauncher.noteDisplay` | `both` | Where notes appear: `both`, `inline`, `tooltip` |
 | `favLauncher.itemDescription` | `both` | Secondary description: `both`, `path`, `note`, `none` |
@@ -273,6 +328,8 @@ Fav Launcher is marked `extensionKind: ["ui"]` — it always runs on the **local
 | `favLauncher.showRecentSection` | `false` | Show a "Recent" group with the last 5 used items |
 | `favLauncher.startupItemId` | `""` | ID of the favorite to open/run on workspace startup |
 | `favLauncher.backupReminderDays` | `0` | Days between export reminders (0 = off) |
+| `favLauncher.ai.defaultTarget` | `auto` | Default destination for AI prompt favorites: `auto`, `codex`, `cursor`, or `clipboard` |
+| `favLauncher.ai.autoPaste` | `true` | When running a prompt favorite, paste the resolved prompt into chat after opening |
 
 ---
 
@@ -284,11 +341,15 @@ Search `Favorites:` in the Command Palette (`Ctrl+Shift+P`):
 - `Favorites: Add Current File`
 - `Favorites: Add Command`
 - `Favorites: Add Macro`
+- `Favorites: Add AI Prompt`
 - `Favorites: Add Group`
 - `Favorites: Add Separator`
 - `Favorites: Add Workspace File or Folder`
 - `Favorites: Add from Clipboard`
+- `Favorites: Move to…` (right-click item or group)
+- `Favorites: Copy to…` (right-click item or group)
 - `Favorites: Filter`
+- `Favorites: Run Prompt` (or click a prompt favorite)
 - `Favorites: Reveal Current File`
 - `Favorites: Set Sort Order`
 - `Favorites: Toggle Recent Section`

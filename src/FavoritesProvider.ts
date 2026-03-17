@@ -103,11 +103,28 @@ export class FavoritesProvider
 
     if (element.type === "workspace" && element.workspacePath) {
       const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
-      item.contextValue = element.pinned ? "favLauncher.item.pinned" : "favLauncher.item";
+      item.contextValue = element.pinned ? "favLauncher.item.workspace.pinned" : "favLauncher.item.workspace";
       item.iconPath = this.coloredIcon(element.icon ?? (element.pinned ? "pinned" : "window"), element.color);
       item.tooltip = this.buildRichTooltip({ label: element.label, detail: element.workspacePath, note: element.note, type: "workspace" });
       item.description = element.workspacePath;
       item.command = { command: "favLauncher.openWorkspace", title: "Open Workspace", arguments: [element] };
+      return item;
+    }
+
+    if (element.type === "prompt") {
+      const item = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
+      item.contextValue = element.pinned ? "favLauncher.item.prompt.pinned" : "favLauncher.item.prompt";
+      item.iconPath = this.coloredIcon(element.icon ?? "comment-discussion", element.color);
+      item.command = { command: "favLauncher.runPrompt", title: "Run Prompt", arguments: [element] };
+      const detail = element.promptTemplate ? "Prompt favorite" : "Prompt favorite (empty template)";
+      item.tooltip = this.buildRichTooltip({
+        label: element.label,
+        detail,
+        note: element.note,
+        type: "prompt",
+        lastUsed: element.lastUsed,
+        pinned: element.pinned,
+      });
       return item;
     }
 
@@ -169,12 +186,14 @@ export class FavoritesProvider
         pinned: element.pinned,
       });
       if (!compact) { treeItem.description = this.buildDescription(element.commandId, element.note); }
+      treeItem.contextValue = element.pinned ? "favLauncher.item.command.pinned" : "favLauncher.item.command";
 
     } else if (element.type === "macro") {
       const stepCount = (element.macroSteps ?? element.macroCommands ?? []).length;
       const steps = element.macroSteps ?? [];
       treeItem.iconPath = this.coloredIcon(element.icon ?? (element.pinned ? "pinned" : "list-ordered"), element.color);
       treeItem.command = { command: "favLauncher.runMacro", title: "Run Macro", arguments: [element] };
+      treeItem.contextValue = element.pinned ? "favLauncher.item.macro.pinned" : "favLauncher.item.macro";
       treeItem.tooltip = this.buildRichTooltip({
         label: element.label,
         detail: `Macro — ${stepCount} step${stepCount !== 1 ? "s" : ""}`,
@@ -204,6 +223,7 @@ export class FavoritesProvider
       return recent.map(x => ({ ...x, id: `__recent__${x.id}`, __recentItem: x } as any));
     }
 
+    // Root
     if (!element) {
       const realItems = all.filter(x => x.type !== "separator");
       if (realItems.length === 0) { return [{ __onboarding: true } as any]; }
@@ -315,7 +335,7 @@ export class FavoritesProvider
 
     // Header
     const typeIcon: Record<string, string> = {
-      file: "file", command: "run", macro: "list-ordered", workspace: "window",
+      file: "file", command: "run", macro: "list-ordered", workspace: "window", prompt: "comment-discussion",
     };
     const icon = typeIcon[opts.type] ?? "star";
     md.appendMarkdown(`**$(${icon}) ${escMd(opts.label)}**\n\n`);
